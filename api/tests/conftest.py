@@ -63,7 +63,8 @@ def db_session(engine: Any) -> Iterator[Any]:
             conn.execute(
                 text(
                     "TRUNCATE usuario, plantilla_reporte, carga_archivo, "
-                    "vista_catalogo, bitacora_consulta CASCADE"
+                    "vista_catalogo, bitacora_consulta, conversacion, mensaje, "
+                    "mensaje_consulta CASCADE"
                 )
             )
 
@@ -186,6 +187,21 @@ def crear_carga(db_session: Any, almacen_memoria: Any) -> Any:
         return carga
 
     return _crear
+
+
+@pytest.fixture
+def fake_llm() -> Iterator[Any]:
+    """Inyecta un FakeProvider global con un guion dado. Devuelve un setter."""
+    from app.ia.fake import FakeProvider
+    from app.ia.proveedor import set_llm_provider
+
+    def _set(guion: Any) -> Any:
+        provider = FakeProvider(guion)
+        set_llm_provider(provider)
+        return provider
+
+    yield _set
+    set_llm_provider(None)
 
 
 @pytest.fixture

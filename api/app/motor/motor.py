@@ -6,9 +6,22 @@ y SOLO los países que sus grants cubren (RLS por construcción). Luego crea las
 vistas curadas sobre esas fuentes y BLOQUEA el acceso externo: el SQL del usuario
 solo puede tocar esas vistas/fuentes ya filtradas — los datos fuera de su alcance
 no existen en su sesión. Cada ejecución se registra en la bitácora de auditoría.
+
+DECISIÓN A REVISITAR (potencialmente ADR si cambia): las fuentes se materializan
+COMPLETAS en memoria (CREATE TEMP TABLE ... AS SELECT * FROM read_parquet(...))
+para poder bloquear el acceso externo y, a la vez, mantener los datos
+consultables. Es correcto para los volúmenes del SSC (decenas de miles a pocos
+millones de filas por carga). Si los volúmenes crecieran de forma significativa,
+habría que cambiar a vistas perezosas + un mecanismo de filtrado de SQL (en vez
+del lockdown post-materialización), lo que altera el modelo de seguridad: ese
+cambio amerita un ADR.
+
+El lockdown depende de SET enable_external_access=false: ver la versión fija de
+DuckDB en pyproject.toml.
 """
 
 import re
+import uuid
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
@@ -56,6 +69,8 @@ class ResultadoConsulta(BaseModel):
     sql_ejecutado: str
     vistas_usadas: list[str]
     versiones_datos: list[VersionDato]
+    # Id de la entrada de bitácora generada (referencia para la auditoría del chat).
+    bitacora_id: uuid.UUID | None = None
 
 
 def _validar_ident(nombre: str) -> None:
@@ -146,19 +161,19 @@ def _auditar(
     filas: int,
     exito: bool,
     error: str | None,
-) -> None:
-    db.add(
-        BitacoraConsulta(
-            usuario_email=usuario_email,
-            sql_ejecutado=sql,
-            vistas_json=vistas_usadas,
-            versiones_json=[v.model_dump() for v in versiones],
-            filas=filas,
-            exito=exito,
-            error=error,
-        )
+) -> uuid.UUID:
+    registro = BitacoraConsulta(
+        usuario_email=usuario_email,
+        sql_ejecutado=sql,
+        vistas_json=vistas_usadas,
+        versiones_json=[v.model_dump() for v in versiones],
+        filas=filas,
+        exito=exito,
+        error=error,
     )
+    db.add(registro)
     db.commit()
+    return registro.id
 
 
 def ejecutar_consulta(
@@ -225,7 +240,9 @@ def ejecutar_consulta(
             raise ConsultaInvalida(str(exc)) from exc
 
         filas = [[_json_safe(v) for v in fila] for fila in filas_raw]
-        _auditar(db, usuario.email, sql, vistas_usadas, versiones, len(filas), True, None)
+        bitacora_id = _auditar(
+            db, usuario.email, sql, vistas_usadas, versiones, len(filas), True, None
+        )
         return ResultadoConsulta(
             columnas=columnas,
             tipos=tipos,
@@ -234,6 +251,7 @@ def ejecutar_consulta(
             sql_ejecutado=sql,
             vistas_usadas=vistas_usadas,
             versiones_datos=versiones,
+            bitacora_id=bitacora_id,
         )
     finally:
         con.close()

@@ -43,6 +43,19 @@ class Settings(BaseSettings):
         "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
     )
 
+    # Proveedor de IA (capa adapter). En dev/test, fake determinístico.
+    llm_provider: Literal["fake", "azure_openai"] = "fake"
+
+    # Azure OpenAI (solo cuando llm_provider=azure_openai). Secretos por entorno.
+    azure_openai_endpoint: str = ""
+    azure_openai_api_key: str = ""
+    azure_openai_deployment: str = ""
+    azure_openai_api_version: str = "2024-06-01"
+
+    # Límites del agente analítico.
+    agente_max_iteraciones: int = 5
+    agente_max_filas: int = 1000
+
     @property
     def es_produccion(self) -> bool:
         return self.entorno == "prod"

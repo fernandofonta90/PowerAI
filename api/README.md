@@ -97,6 +97,36 @@ curl -X POST localhost:8000/consultas \
 
 El LLM no interviene en M3: el SQL se escribe a mano (M4 le pondrá el agente encima).
 
+## Chat analítico (M4)
+
+Un agente con tool-calling (`listar_vistas`, `ejecutar_sql`) responde preguntas en
+lenguaje natural sobre el catálogo. El SQL pasa por el motor de M3 (RLS por
+construcción) y se valida como solo-SELECT con límite de filas. La respuesta
+incluye **citación estructurada** (fuentes con versión, fecha, responsable y
+frescura). El proveedor LLM es una capa adapter: `fake` (dev/test) o
+`azure_openai` (`POWERAI_LLM_PROVIDER`). Cada conversación y sus consultas quedan
+auditadas (`conversacion`, `mensaje`, `bitacora_consulta`).
+
+```bash
+# Crear conversación y preguntar (en dev, el provider fake responde guionizado)
+CID=$(curl -s -X POST localhost:8000/conversaciones -H "X-Mock-User: uploader.mx@powerai.dev" \
+  -H "Content-Type: application/json" -d '{"titulo":"Cartera"}' | python -c "import sys,json;print(json.load(sys.stdin)['id'])")
+curl -X POST localhost:8000/conversaciones/$CID/mensajes \
+  -H "X-Mock-User: uploader.mx@powerai.dev" -H "Content-Type: application/json" \
+  -d '{"pregunta": "¿Cuánto suma la cartera abierta?"}'
+```
+
+## Imágenes Docker (API y worker)
+
+Comparten un único Dockerfile multi-stage (slim, no-root, sin dev-deps):
+
+```bash
+docker build --target api    -t powerai-api    ./api
+docker build --target worker -t powerai-worker ./api
+# Todo contenedorizado (infra + api + worker):
+docker compose --profile full up -d
+```
+
 ## Estructura
 
 ```
