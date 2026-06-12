@@ -5,8 +5,7 @@ y serializa a Parquet en memoria. Se asume que la tabla ya pasó la validación.
 """
 
 import io
-from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -16,10 +15,16 @@ from app.domain.enums import TipoColumna
 from app.ingesta.coercion import coercer
 from app.ingesta.lector import Tabla
 
+# Montos: punto fijo DECIMAL(18,2). NUNCA float64: los montos financieros se
+# concilian al centavo y el float binario introduce errores de redondeo.
+DECIMAL_PRECISION = 18
+DECIMAL_ESCALA = 2
+_CENTAVO = Decimal(10) ** -DECIMAL_ESCALA  # Decimal("0.01")
+
 _PA_TIPOS = {
     TipoColumna.TEXTO: pa.string(),
     TipoColumna.ENTERO: pa.int64(),
-    TipoColumna.DECIMAL: pa.float64(),
+    TipoColumna.DECIMAL: pa.decimal128(DECIMAL_PRECISION, DECIMAL_ESCALA),
     TipoColumna.FECHA: pa.date32(),
 }
 
@@ -29,9 +34,8 @@ def _valor_pa(valor: str, tipo: TipoColumna) -> object:
         return None
     coercido = coercer(valor, tipo)
     if isinstance(coercido, Decimal):
-        return float(coercido)
-    if isinstance(coercido, date):
-        return coercido
+        # Cuantiza al centavo (half-up) para encajar en DECIMAL(18,2) exacto.
+        return coercido.quantize(_CENTAVO, rounding=ROUND_HALF_UP)
     return coercido
 
 
