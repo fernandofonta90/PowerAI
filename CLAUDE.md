@@ -16,6 +16,8 @@ PowerAI es la plataforma de inteligencia analítica del SSC Finanzas LATAM de Ma
 - Trabajo incremental por milestones con criterios de aceptación explícitos. Cada milestone termina con tests en verde antes de pasar al siguiente.
 - Commits convencionales en español: `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`. Mensajes descriptivos con cuerpo cuando el cambio lo amerite.
 - Nunca marques una tarea como completada sin tests que lo demuestren.
+- **Cada milestone abre un PR a `main`** como documentación y punto de auditoría (resumen, DoD verificado y decisiones tomadas). El PR se verifica con `gh pr view` antes de reportarlo como creado.
+- **Los merges los hace Claude Code** con `gh pr merge` (merge normal, borrando la rama), pero **ÚNICAMENTE cuando Fernando lo ordene de forma explícita** — nunca por iniciativa propia. Tras mergear, verificar con `gh pr view` que quedó `MERGED`.
 
 ## Stack (vinculante — ver ADR-0001 y ADR-0002)
 
