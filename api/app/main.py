@@ -3,7 +3,7 @@
 from fastapi import FastAPI
 
 from app import __version__
-from app.routers import auth, cargas, health, plantillas
+from app.routers import auth, cargas, consulta, health, plantillas
 
 
 def create_app() -> FastAPI:
@@ -17,6 +17,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(plantillas.router)
     app.include_router(cargas.router)
+    app.include_router(consulta.router)
     return app
 
 

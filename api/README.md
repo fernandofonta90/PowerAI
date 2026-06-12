@@ -74,6 +74,29 @@ curl localhost:8000/plantillas -H "X-Mock-User: admin.otc@powerai.dev"
 
 Genera un CSV de muestra sintético con `app.scripts.muestras.generar_csv`.
 
+## Catálogo semántico y motor de consulta (M3)
+
+El catálogo expone **vistas curadas** (datos, no código) sobre los Parquet:
+`ar_abiertas`, `pagos_unapplied`, `revenue_recon`. El motor ejecuta SQL contra
+DuckDB leyendo los Parquet directo de Azure Blob, con **seguridad a nivel de fila
+por construcción**: por request materializa solo la última versión por
+(país, periodo) y solo los países que los grants del usuario cubren; luego bloquea
+el acceso externo, de modo que el SQL no puede escapar a datos fuera de alcance.
+Los montos son `DECIMAL(18,2)` (exactos al centavo). Cada ejecución queda en la
+bitácora de auditoría (`bitacora_consulta`).
+
+```bash
+# Listar el catálogo de vistas (con descripciones para el LLM de M4)
+curl localhost:8000/vistas -H "X-Mock-User: admin.otc@powerai.dev"
+
+# Ejecutar una consulta (SQL contra las vistas pre-filtradas del usuario)
+curl -X POST localhost:8000/consultas \
+  -H "X-Mock-User: uploader.mx@powerai.dev" -H "Content-Type: application/json" \
+  -d '{"sql": "SELECT cliente, sum(monto) AS saldo FROM ar_abiertas GROUP BY cliente ORDER BY saldo DESC LIMIT 5"}'
+```
+
+El LLM no interviene en M3: el SQL se escribe a mano (M4 le pondrá el agente encima).
+
 ## Estructura
 
 ```

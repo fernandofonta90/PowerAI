@@ -17,3 +17,14 @@ class ColumnaSpec(BaseModel):
     tipo: TipoColumna
     requerida: bool = True
     descripcion: str = ""
+
+
+class ColumnaDescrita(BaseModel):
+    """Columna de una vista del catálogo con su descripción de negocio.
+
+    La descripción se redacta para un lector de NEGOCIO: el LLM la leerá (M4)
+    para decidir qué consultar.
+    """
+
+    nombre: str
+    descripcion: str

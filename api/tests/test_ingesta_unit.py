@@ -105,8 +105,29 @@ def test_a_parquet_preserva_esquema_y_tipos() -> None:
 
     assert pa_tabla.num_rows == 5
     assert pa_tabla.column_names == [c.nombre for c in AR.columnas]
-    # Tipos: monto decimal→float, dias_vencido entero, fecha_emision date.
+    # Montos en punto fijo DECIMAL(18,2), nunca float; entero y fecha tipados.
     esquema = {campo.name: str(campo.type) for campo in pa_tabla.schema}
-    assert esquema["monto"] == "double"
+    assert esquema["monto"] == "decimal128(18, 2)"
     assert esquema["dias_vencido"] == "int64"
     assert esquema["fecha_emision"] == "date32[day]"
+
+
+def test_montos_son_decimal_exacto_al_centavo() -> None:
+    """Suma de montos exacta al centavo: punto fijo, sin error binario de float."""
+    cols = ",".join(c.nombre for c in AR.columnas)
+    # Diez filas de 0.10: la suma exacta es 1.00 (en float64 daría 0.9999...).
+    filas = "\n".join(f"MX,2026-05,ACME,F-{i},2026-01-01,2026-02-01,0.10,10,USD" for i in range(10))
+    tabla = leer_tabla(f"{cols}\n{filas}\n".encode(), "aging.csv")
+    pa_tabla = pq.read_table(io.BytesIO(a_parquet(tabla, AR.columnas)))
+
+    montos = pa_tabla.column("monto").to_pylist()
+    assert all(isinstance(m, Decimal) for m in montos)
+    assert sum(montos, Decimal("0")) == Decimal("1.00")
+
+
+def test_monto_se_cuantiza_a_dos_decimales() -> None:
+    cols = ",".join(c.nombre for c in AR.columnas)
+    fila = "MX,2026-05,ACME,F-1,2026-01-01,2026-02-01,100.555,10,USD"
+    tabla = leer_tabla(f"{cols}\n{fila}\n".encode(), "aging.csv")
+    pa_tabla = pq.read_table(io.BytesIO(a_parquet(tabla, AR.columnas)))
+    assert pa_tabla.column("monto").to_pylist()[0] == Decimal("100.56")
