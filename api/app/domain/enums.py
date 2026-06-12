@@ -57,3 +57,48 @@ class Rol(StrEnum):
 
 # Comodín de país: un grant con país "*" aplica a todos los países de la torre.
 PAIS_TODOS = "*"
+
+
+class Frecuencia(StrEnum):
+    """Frecuencia esperada de carga de una plantilla (insumo de la frescura)."""
+
+    DIARIA = "diaria"
+    SEMANAL = "semanal"
+    QUINCENAL = "quincenal"
+    MENSUAL = "mensual"
+
+
+# Días de holgura por frecuencia, usados para calcular el estado de frescura.
+DIAS_POR_FRECUENCIA: dict[Frecuencia, int] = {
+    Frecuencia.DIARIA: 1,
+    Frecuencia.SEMANAL: 7,
+    Frecuencia.QUINCENAL: 15,
+    Frecuencia.MENSUAL: 30,
+}
+
+
+class TipoColumna(StrEnum):
+    """Tipos soportados para las columnas de una plantilla."""
+
+    TEXTO = "texto"
+    ENTERO = "entero"
+    DECIMAL = "decimal"
+    FECHA = "fecha"
+
+
+class EstadoCarga(StrEnum):
+    """Ciclo de vida de una carga de archivo."""
+
+    RECIBIDA = "recibida"
+    PROCESANDO = "procesando"
+    DISPONIBLE = "disponible"
+    FALLIDA = "fallida"
+
+
+class EstadoFrescura(StrEnum):
+    """Estado de frescura de un dataset (badge verde/ámbar/rojo del design system)."""
+
+    AL_DIA = "al_dia"
+    ADVERTENCIA = "advertencia"
+    VENCIDO = "vencido"
+    SIN_DATOS = "sin_datos"

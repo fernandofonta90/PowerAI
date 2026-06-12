@@ -59,9 +59,12 @@ def sembrar(db: Session) -> int:
 
 
 def main() -> None:
+    from app.scripts.seed_plantillas import sembrar_plantillas
+
     with SessionLocal() as db:
-        total = sembrar(db)
-    print(f"Sembrados {total} usuarios de desarrollo (mock auth).")
+        usuarios = sembrar(db)
+        plantillas = sembrar_plantillas(db)
+    print(f"Sembrados {usuarios} usuarios de desarrollo (mock auth) y {plantillas} plantillas OTC.")
 
 
 if __name__ == "__main__":

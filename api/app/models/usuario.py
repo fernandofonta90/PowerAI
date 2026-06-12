@@ -7,18 +7,13 @@ mapeo de grupos a asignaciones se sincroniza aquí.
 
 import uuid
 
-from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.domain.enums import Rol, Torre
 from app.models.base import Base, TimestampMixin
-
-# Persistimos el .value de los enums (no el .name), para que coincida con los
-# tipos ENUM creados en la migración (p. ej. rol -> "admin", no "ADMIN").
-_torre_enum = SAEnum(Torre, name="torre", values_callable=lambda e: [m.value for m in e])
-_rol_enum = SAEnum(Rol, name="rol", values_callable=lambda e: [m.value for m in e])
+from app.models.tipos import rol_enum, torre_enum
 
 
 class Usuario(Base, TimestampMixin):
@@ -53,8 +48,8 @@ class AsignacionPermiso(Base, TimestampMixin):
     usuario_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("usuario.id", ondelete="CASCADE"), nullable=False
     )
-    torre: Mapped[Torre] = mapped_column(_torre_enum, nullable=False)
+    torre: Mapped[Torre] = mapped_column(torre_enum, nullable=False)
     pais: Mapped[str] = mapped_column(String(2), nullable=False)
-    rol: Mapped[Rol] = mapped_column(_rol_enum, nullable=False)
+    rol: Mapped[Rol] = mapped_column(rol_enum, nullable=False)
 
     usuario: Mapped[Usuario] = relationship(back_populates="asignaciones")
