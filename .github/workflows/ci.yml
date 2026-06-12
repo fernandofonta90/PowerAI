@@ -35,6 +35,28 @@ jobs:
         # testcontainers usa el Docker disponible en el runner.
         run: uv run pytest
 
+  evals:
+    name: Banco de preguntas doradas (nivel motor)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+
+      - name: Sincronizar dependencias
+        run: uv sync
+
+      - name: Evals nivel motor (umbral 100%)
+        # Determinístico: cada pregunta dorada ejecuta su SQL canónico por el motor
+        # y compara contra la aserción. Cualquier fallo rompe el build.
+        run: uv run pytest tests/test_evals.py -q
+
   web:
     name: Web (lint + tests)
     runs-on: ubuntu-latest
