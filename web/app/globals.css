@@ -6,6 +6,7 @@
   color-scheme: light;
 }
 
+/* Fondo general de la aplicación y texto base (design system v2). */
 body {
-  @apply bg-slate-50 text-slate-900;
+  @apply bg-surface-100 text-neutral-900;
 }
