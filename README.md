@@ -36,8 +36,9 @@ PowerAI es una plataforma interna donde cada torre del Shared Service Center (OT
 
 - **Versión de la documentación:** 0.1 (borrador para revisión)
 - **Fase 1 (MVP):** Torre OTC, 8–10 semanas
-- **Milestones:** M1 — Fundación ✅ · M2 — Plantillas y carga (ingesta con
-  validación, normalización a Parquet vía Celery, catálogo y frescura) ✅
+- **Milestones:** M1 — Fundación ✅ · M2 — Plantillas y carga ✅ · M3 — Catálogo
+  semántico y motor de consulta (vistas curadas, DuckDB sobre Parquet, RLS por
+  construcción, bitácora de auditoría) ✅
 
 ## Desarrollo local
 
