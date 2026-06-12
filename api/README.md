@@ -17,8 +17,10 @@ cd api
 cp .env.example .env          # ajusta POWERAI_DATABASE_URL si cambiaste puertos
 uv sync                       # instala dependencias
 uv run alembic upgrade head   # crea el esquema desde cero
-uv run python -m app.scripts.seed_dev   # usuarios mock de desarrollo
+uv run python -m app.scripts.seed_dev   # usuarios mock + plantillas OTC
 uv run uvicorn app.main:app --reload
+# En otra terminal, el worker de ingesta (normalización a Parquet):
+uv run celery -A app.worker.celery_app worker --loglevel=info
 ```
 
 ## Comandos
@@ -46,6 +48,31 @@ contra la tabla `usuario`. Usuarios sembrados por `seed_dev`:
 curl localhost:8000/me -H "X-Mock-User: admin.otc@powerai.dev"
 curl "localhost:8000/otc/aging?pais=MX" -H "X-Mock-User: uploader.mx@powerai.dev"
 ```
+
+## Carga y catálogo (M2)
+
+Plantillas OTC sembradas: `otc_ar_abiertas`, `otc_pagos_unapplied`,
+`otc_revenue_recon`. El flujo de carga valida el esquema de forma síncrona
+(país y periodo declarados se verifican contra el contenido) y encola la
+normalización a Parquet en el worker Celery.
+
+```bash
+# Subir un reporte (rol uploader/admin de la torre y país)
+curl -X POST localhost:8000/cargas \
+  -H "X-Mock-User: uploader.mx@powerai.dev" \
+  -F "plantilla_codigo=otc_ar_abiertas" -F "pais=MX" -F "periodo=2026-07" \
+  -F "archivo=@aging.csv;type=text/csv"
+
+# Estado de la carga (recibida → procesando → disponible/fallida)
+curl localhost:8000/cargas/<id> -H "X-Mock-User: uploader.mx@powerai.dev"
+
+# Catálogo (filtrado por RBAC torre × país) y frescura
+curl localhost:8000/catalogo -H "X-Mock-User: admin.otc@powerai.dev"
+curl "localhost:8000/catalogo/frescura?torre=OTC" -H "X-Mock-User: admin.otc@powerai.dev"
+curl localhost:8000/plantillas -H "X-Mock-User: admin.otc@powerai.dev"
+```
+
+Genera un CSV de muestra sintético con `app.scripts.muestras.generar_csv`.
 
 ## Estructura
 

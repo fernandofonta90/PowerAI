@@ -69,10 +69,14 @@ Fuera de alcance de Fase 1 (no implementar todavía): dashboards, alertas a Team
 ## Comandos esperados (mantener actualizados al implementarlos)
 
 ```bash
-# Levantar entorno dev completo
+# Levantar entorno dev (Postgres, Redis, Azurite)
 docker compose up -d
+# Migraciones + seed (usuarios y plantillas)
+cd api && uv run alembic upgrade head && uv run python -m app.scripts.seed_dev
 # API
 cd api && uvicorn app.main:app --reload
+# Worker Celery de ingesta (vía compose o local)
+docker compose --profile worker up -d worker   # o: make worker-local
 # Tests API
 cd api && pytest
 # Frontend

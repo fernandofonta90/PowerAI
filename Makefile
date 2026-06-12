@@ -46,5 +46,11 @@ test-web: ## Vitest sobre el frontend
 migrate: ## Aplica migraciones Alembic desde cero hasta head
 	cd api && uv run alembic upgrade head
 
-seed: ## Siembra usuarios de desarrollo (mock auth)
+seed: ## Siembra usuarios y plantillas de desarrollo
 	cd api && uv run python -m app.scripts.seed_dev
+
+worker: ## Levanta el worker Celery de ingesta vía compose (profile worker)
+	docker compose --profile worker up -d worker
+
+worker-local: ## Corre el worker Celery localmente (sin docker)
+	cd api && uv run celery -A app.worker.celery_app worker --loglevel=info
