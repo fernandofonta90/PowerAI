@@ -1,9 +1,11 @@
 """Modelos ORM (SQLAlchemy). Importados aquí para el autogenerate de Alembic."""
 
 from app.models.base import Base
+from app.models.bitacora import BitacoraConsulta
 from app.models.carga import CargaArchivo
 from app.models.plantilla import PlantillaReporte
 from app.models.usuario import AsignacionPermiso, Usuario
+from app.models.vista import VistaCatalogo
 
 __all__ = [
     "Base",
@@ -11,4 +13,6 @@ __all__ = [
     "AsignacionPermiso",
     "PlantillaReporte",
     "CargaArchivo",
+    "VistaCatalogo",
+    "BitacoraConsulta",
 ]

@@ -60,11 +60,16 @@ def sembrar(db: Session) -> int:
 
 def main() -> None:
     from app.scripts.seed_plantillas import sembrar_plantillas
+    from app.scripts.seed_vistas import sembrar_vistas
 
     with SessionLocal() as db:
         usuarios = sembrar(db)
         plantillas = sembrar_plantillas(db)
-    print(f"Sembrados {usuarios} usuarios de desarrollo (mock auth) y {plantillas} plantillas OTC.")
+        vistas = sembrar_vistas(db)
+    print(
+        f"Sembrados {usuarios} usuarios (mock auth), {plantillas} plantillas OTC "
+        f"y {vistas} vistas del catálogo."
+    )
 
 
 if __name__ == "__main__":
