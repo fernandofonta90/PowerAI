@@ -16,7 +16,12 @@ dependencies = [
     "azure-storage-blob>=12.20",
     "pyarrow>=16.1",
     "openpyxl>=3.1",
-    "duckdb>=1.1",
+    # DuckDB con versión FIJA: el lockdown de seguridad del motor
+    # (SET enable_external_access=false tras materializar las fuentes) está
+    # validado contra esta versión. Los upgrades son deliberados, nunca
+    # implícitos: revalidar el lockdown antes de subirla.
+    "duckdb==1.5.3",
+    "openai>=1.40",
 ]
 
 [dependency-groups]
@@ -54,7 +59,7 @@ plugins = ["pydantic.mypy"]
 exclude = ["migrations/"]
 
 [[tool.mypy.overrides]]
-module = ["testcontainers.*", "celery.*", "pyarrow.*", "openpyxl.*"]
+module = ["testcontainers.*", "celery.*", "pyarrow.*", "openpyxl.*", "openai.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
 
