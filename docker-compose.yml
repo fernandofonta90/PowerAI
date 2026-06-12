@@ -1,0 +1,53 @@
+# Entorno de desarrollo local de PowerAI.
+# Provisiona las dependencias de infraestructura de la Fase 1 (M1):
+#   - PostgreSQL 16 con pgvector (base transaccional; ver ADR-0001/0002)
+#   - Redis (broker/result backend para Celery; jobs fuera del request)
+#   - Azurite (emulador local de Azure Blob Storage)
+#
+# Uso:  docker compose up -d
+# Los datos reales del SSC NUNCA se versionan; los volúmenes son locales.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: powerai-postgres
+    environment:
+      POSTGRES_USER: powerai
+      POSTGRES_PASSWORD: powerai_dev
+      POSTGRES_DB: powerai
+    ports:
+      # Puerto de host configurable para evitar choques con otros Postgres locales.
+      - "${POWERAI_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U powerai -d powerai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: powerai-redis
+    ports:
+      - "${POWERAI_REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: powerai-azurite
+    command: "azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --location /data"
+    ports:
+      - "10000:10000" # Blob
+      - "10001:10001" # Queue
+      - "10002:10002" # Table
+    volumes:
+      - azurite_data:/data
+
+volumes:
+  postgres_data:
+  azurite_data:

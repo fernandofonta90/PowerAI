@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+/* Fondo general de la aplicación y texto base (design system v2). */
+body {
+  @apply bg-surface-100 text-neutral-900;
+}

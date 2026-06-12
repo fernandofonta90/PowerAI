@@ -8,6 +8,7 @@ PowerAI es la plataforma de inteligencia analítica del SSC Finanzas LATAM de Ma
 - `docs/arquitectura.md` — documento de arquitectura completo
 - `docs/adr/` — las 4 decisiones de arquitectura son vinculantes, no sugerencias
 - `docs/casos-de-uso.md` — los casos funcionales que se están resolviendo
+- `docs/design-system.md` — tokens, componentes y spec del home; vinculante para todo `web/`
 
 ## Metodología de trabajo
 

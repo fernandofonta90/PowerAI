@@ -35,8 +35,33 @@ PowerAI es una plataforma interna donde cada torre del Shared Service Center (OT
 ## Estado
 
 - **Versión de la documentación:** 0.1 (borrador para revisión)
-- **Fase actual:** Diseño — pendiente validación con liderazgo del SSC y Global Technology
 - **Fase 1 (MVP):** Torre OTC, 8–10 semanas
+- **Milestone actual:** M1 — Fundación (monorepo, entorno dev, FastAPI con health
+  check, Next.js con layout base, mock auth torre × país, CI). ✅
+
+## Desarrollo local
+
+Requisitos: Docker, Python 3.12 + [uv](https://docs.astral.sh/uv/), Node 20+.
+
+```bash
+# 1. Infraestructura dev (Postgres, Redis, Azurite)
+cp .env.example .env          # opcional: ajusta puertos si chocan con otros servicios
+docker compose up -d
+
+# 2. API
+cd api && cp .env.example .env
+uv sync
+uv run alembic upgrade head
+uv run python -m app.scripts.seed_dev
+uv run uvicorn app.main:app --reload   # http://localhost:8000
+
+# 3. Frontend (en otra terminal)
+cd web && npm install
+npm run dev                            # http://localhost:3000
+```
+
+Atajos: `make up`, `make lint`, `make test` (ver `make help`). Detalle de la API
+en [api/README.md](api/README.md).
 
 ## Estructura del repositorio
 
@@ -53,9 +78,12 @@ powerai/
 │   │   └── 0004-dashboards-como-spec-declarativa.md
 │   └── assets/
 │       └── arquitectura_powerai.png
-├── api/                      # (Fase 1) Backend FastAPI
-├── web/                      # (Fase 1) Frontend Next.js
-└── infra/                    # (Fase 1) IaC Azure (Bicep/Terraform)
+├── docker-compose.yml        # entorno dev: Postgres, Redis, Azurite
+├── Makefile                  # atajos: up, lint, test, migrate, seed
+├── .github/workflows/ci.yml  # CI: lint + tests de api y web
+├── api/                      # Backend FastAPI (app, migraciones, tests)
+├── web/                      # Frontend Next.js (App Router + Tailwind)
+└── infra/                    # IaC Azure (Bicep) — esqueleto Fase 1
 ```
 
 ---

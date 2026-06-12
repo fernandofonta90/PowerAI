@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "entorno": { "value": "dev" },
+    "prefijo": { "value": "powerai" },
+    "pgAdminUsuario": { "value": "powerai_admin" },
+    "pgAdminPassword": {
+      "reference": {
+        "keyVault": { "id": "<RESOURCE_ID_DEL_KEY_VAULT>" },
+        "secretName": "powerai-pg-admin-password"
+      }
+    }
+  }
+}
