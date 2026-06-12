@@ -6,6 +6,15 @@
 #
 # Uso:  docker compose up -d
 # Los datos reales del SSC NUNCA se versionan; los volúmenes son locales.
+#
+# Profiles:
+#   (default)        solo infraestructura: postgres, redis, azurite
+#   --profile worker infra + worker Celery
+#   --profile full   TODO contenedorizado: infra + api + worker
+
+# Cadena de conexión de Azurite (clave pública y bien conocida del emulador).
+x-blob-azurite: &blob_azurite >-
+  DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
 
 services:
   postgres:
@@ -50,19 +59,42 @@ services:
     volumes:
       - azurite_data:/data
 
-  # Worker Celery de ingesta (normalización a Parquet fuera del request).
-  # Bajo el profile "worker" para que `docker compose up -d` solo levante la
-  # infraestructura; arráncalo con `docker compose --profile worker up -d`.
-  worker:
-    build: ./api
-    container_name: powerai-worker
-    profiles: ["worker"]
-    command: celery -A app.worker.celery_app worker --loglevel=info
+  # API contenedorizada. Solo en el profile "full"; el flujo dev por defecto
+  # corre la API con uvicorn local (ver README).
+  api:
+    build:
+      context: ./api
+      target: api
+    container_name: powerai-api
+    profiles: ["full"]
     environment:
       POWERAI_DATABASE_URL: postgresql+psycopg://powerai:powerai_dev@postgres:5432/powerai
       POWERAI_REDIS_URL: redis://redis:6379/0
-      POWERAI_BLOB_CONNECTION_STRING: >-
-        DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;
+      POWERAI_CELERY_EAGER: "false"
+      POWERAI_BLOB_CONNECTION_STRING: *blob_azurite
+    ports:
+      - "${POWERAI_API_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      azurite:
+        condition: service_started
+
+  # Worker Celery de ingesta (normalización a Parquet fuera del request).
+  # Comparte imagen con la API (target worker). En los profiles "worker" y "full";
+  # `docker compose up -d` (sin profile) solo levanta la infraestructura.
+  worker:
+    build:
+      context: ./api
+      target: worker
+    container_name: powerai-worker
+    profiles: ["worker", "full"]
+    environment:
+      POWERAI_DATABASE_URL: postgresql+psycopg://powerai:powerai_dev@postgres:5432/powerai
+      POWERAI_REDIS_URL: redis://redis:6379/0
+      POWERAI_BLOB_CONNECTION_STRING: *blob_azurite
     depends_on:
       postgres:
         condition: service_healthy
