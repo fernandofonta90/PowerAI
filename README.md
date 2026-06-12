@@ -36,8 +36,8 @@ PowerAI es una plataforma interna donde cada torre del Shared Service Center (OT
 
 - **Versión de la documentación:** 0.1 (borrador para revisión)
 - **Fase 1 (MVP):** Torre OTC, 8–10 semanas
-- **Milestone actual:** M1 — Fundación (monorepo, entorno dev, FastAPI con health
-  check, Next.js con layout base, mock auth torre × país, CI). ✅
+- **Milestones:** M1 — Fundación ✅ · M2 — Plantillas y carga (ingesta con
+  validación, normalización a Parquet vía Celery, catálogo y frescura) ✅
 
 ## Desarrollo local
 
@@ -52,10 +52,14 @@ docker compose up -d
 cd api && cp .env.example .env
 uv sync
 uv run alembic upgrade head
-uv run python -m app.scripts.seed_dev
-uv run uvicorn app.main:app --reload   # http://localhost:8000
+uv run python -m app.scripts.seed_dev          # usuarios mock + plantillas OTC
+uv run uvicorn app.main:app --reload           # http://localhost:8000
 
-# 3. Frontend (en otra terminal)
+# 3. Worker de ingesta (normalización a Parquet) — en otra terminal
+cd api && uv run celery -A app.worker.celery_app worker --loglevel=info
+#   (o vía compose: docker compose --profile worker up -d worker)
+
+# 4. Frontend (en otra terminal)
 cd web && npm install
 npm run dev                            # http://localhost:3000
 ```

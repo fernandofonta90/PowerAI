@@ -28,8 +28,20 @@ class Settings(BaseSettings):
     # Conexión a PostgreSQL (base transaccional). Driver psycopg v3.
     database_url: str = "postgresql+psycopg://powerai:powerai_dev@localhost:5432/powerai"
 
-    # Broker de Celery (Redis). Reservado para ingesta/alertas en milestones posteriores.
+    # Broker y backend de resultados de Celery (Redis).
     redis_url: str = "redis://localhost:6379/0"
+
+    # En tests/CI, Celery corre en modo eager (tareas síncronas, sin worker).
+    celery_eager: bool = False
+
+    # Conexión a Azure Blob Storage. Por defecto, el endpoint de Azurite (dev).
+    # En prod proviene de Key Vault. NUNCA un valor real en el repo.
+    blob_connection_string: str = (
+        "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;"
+        "AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/"
+        "K1SZFPTOtr/KBHBeksoGMGw==;"
+        "BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
+    )
 
     @property
     def es_produccion(self) -> bool:

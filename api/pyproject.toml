@@ -11,6 +11,11 @@ dependencies = [
     "sqlalchemy>=2.0.30",
     "alembic>=1.13",
     "psycopg[binary]>=3.1",
+    "python-multipart>=0.0.9",
+    "celery[redis]>=5.4",
+    "azure-storage-blob>=12.20",
+    "pyarrow>=16.1",
+    "openpyxl>=3.1",
 ]
 
 [dependency-groups]
@@ -48,8 +53,9 @@ plugins = ["pydantic.mypy"]
 exclude = ["migrations/"]
 
 [[tool.mypy.overrides]]
-module = ["testcontainers.*"]
+module = ["testcontainers.*", "celery.*", "pyarrow.*", "openpyxl.*"]
 ignore_missing_imports = true
+follow_imports = "skip"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
