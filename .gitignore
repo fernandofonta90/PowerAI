@@ -6,11 +6,17 @@ venv/
 .env
 .env.*
 !.env.example
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Node
 node_modules/
 .next/
 dist/
+*.tsbuildinfo
 
 # IDE
 .vscode/settings.json
