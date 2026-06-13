@@ -1,0 +1,333 @@
+# Banco de preguntas doradas — Torre OTC (CU-00 a CU-07).
+#
+# Cada entrada se evalúa en dos niveles (ver evals/README.md):
+#   - motor:  ejecuta `sql_canonico` por el motor M3 y compara contra `asercion`.
+#   - agente: la `pregunta` (y sus `variantes`) entra por el agente M4 completo.
+#
+# Las respuestas son correctas POR CONSTRUCCIÓN del dataset de referencia
+# (app/evals/dataset.py). Los montos DECIMAL se serializan como string.
+# El usuario es solo-MX: la cartera de CO del dataset nunca debe aparecer (RLS).
+
+- id: otc-aging-total
+  cu: CU-00
+  pregunta: "¿Cuál es el monto total de la cartera por cobrar abierta?"
+  variantes:
+    - "¿Cuánto suma en total la cartera abierta?"
+    - "Dame el total de las facturas abiertas"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT sum(monto) AS total FROM ar_abiertas"
+  asercion:
+    filas: [["5550.00"]]
+
+- id: otc-aging-num-facturas
+  cu: CU-00
+  pregunta: "¿Cuántas facturas abiertas hay?"
+  variantes:
+    - "¿Cuántas facturas por cobrar siguen abiertas?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT count(*) AS n FROM ar_abiertas"
+  asercion:
+    filas: [[6]]
+
+- id: otc-saldo-por-cliente
+  cu: CU-03b
+  pregunta: "¿Cuál es el saldo abierto por cliente, de mayor a menor?"
+  variantes:
+    - "Muéstrame la deuda de cada cliente ordenada de mayor a menor"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT cliente, sum(monto) AS saldo FROM ar_abiertas GROUP BY cliente ORDER BY saldo DESC"
+  asercion:
+    filas:
+      - ["GLOBEX", "3500.00"]
+      - ["ACME", "1750.00"]
+      - ["INITECH", "300.00"]
+
+- id: otc-top-cliente-deuda
+  cu: CU-03b
+  pregunta: "¿Qué cliente tiene la mayor deuda vencida abierta?"
+  variantes:
+    - "¿Cuál es el cliente con más saldo por cobrar?"
+    - "Dime el cliente que más debe"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT cliente, sum(monto) AS saldo FROM ar_abiertas GROUP BY cliente ORDER BY saldo DESC LIMIT 1"
+  asercion:
+    filas: [["GLOBEX", "3500.00"]]
+
+- id: otc-cartera-vencida
+  cu: CU-00
+  pregunta: "¿Cuánto suma la cartera vencida (facturas con días de mora)?"
+  variantes:
+    - "¿Cuál es el total de lo que ya está vencido?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT sum(monto) AS total FROM ar_abiertas WHERE dias_vencido > 0"
+  asercion:
+    filas: [["5250.00"]]
+
+- id: otc-mora-mayor-60-count
+  cu: CU-00
+  pregunta: "¿Cuántas facturas tienen más de 60 días de vencidas?"
+  variantes:
+    - "¿Cuántas facturas superan los 60 días de mora?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT count(*) AS n FROM ar_abiertas WHERE dias_vencido > 60"
+  asercion:
+    filas: [[2]]
+
+- id: otc-mora-mayor-60-monto
+  cu: CU-03
+  pregunta: "¿Cuánto suma la cartera con más de 60 días de mora?"
+  variantes:
+    - "¿Qué monto está vencido a más de 60 días?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT sum(monto) AS total FROM ar_abiertas WHERE dias_vencido > 60"
+  asercion:
+    filas: [["1750.00"]]
+
+- id: otc-clientes-mora-60
+  cu: CU-03
+  pregunta: "¿Qué clientes tienen facturas con más de 60 días de mora?"
+  variantes:
+    - "Lista los clientes con mora mayor a 60 días"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT DISTINCT cliente FROM ar_abiertas WHERE dias_vencido > 60 ORDER BY cliente"
+  asercion:
+    filas:
+      - ["ACME"]
+      - ["GLOBEX"]
+
+- id: otc-factura-mayor
+  cu: CU-03b
+  pregunta: "¿Cuál es la factura abierta de mayor monto y de qué cliente?"
+  variantes:
+    - "Dame la factura más grande que sigue abierta"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT cliente, factura, monto FROM ar_abiertas ORDER BY monto DESC LIMIT 1"
+  asercion:
+    filas: [["GLOBEX", "F-4", "2000.00"]]
+
+- id: otc-clientes-distintos
+  cu: CU-03b
+  pregunta: "¿Cuántos clientes distintos tienen cartera abierta?"
+  variantes:
+    - "¿A cuántos clientes les debemos cobrar?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT count(DISTINCT cliente) AS n FROM ar_abiertas"
+  asercion:
+    filas: [[3]]
+
+- id: otc-clientes-ordenados
+  cu: CU-03b
+  pregunta: "Lista en orden alfabético los clientes con cartera abierta"
+  variantes: []
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT DISTINCT cliente FROM ar_abiertas ORDER BY cliente"
+  asercion:
+    filas:
+      - ["ACME"]
+      - ["GLOBEX"]
+      - ["INITECH"]
+
+- id: otc-al-corriente
+  cu: CU-01
+  pregunta: "¿Cuántas facturas están al corriente (sin mora)?"
+  variantes:
+    - "¿Cuántas facturas no están vencidas?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT count(*) AS n FROM ar_abiertas WHERE dias_vencido = 0"
+  asercion:
+    filas: [[1]]
+
+- id: otc-aging-buckets
+  cu: CU-00
+  pregunta: "Dame el aging de la cartera por tramos de días de mora"
+  variantes:
+    - "¿Cómo se distribuye la cartera por antigüedad?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: >-
+    SELECT CASE WHEN dias_vencido = 0 THEN 'corriente'
+    WHEN dias_vencido <= 30 THEN '1-30' WHEN dias_vencido <= 60 THEN '31-60'
+    ELSE '60+' END AS bucket, sum(monto) AS total FROM ar_abiertas
+    GROUP BY bucket ORDER BY bucket
+  asercion:
+    filas:
+      - ["1-30", "3000.00"]
+      - ["31-60", "500.00"]
+      - ["60+", "1750.00"]
+      - ["corriente", "300.00"]
+
+- id: otc-max-dias-mora
+  cu: CU-00
+  pregunta: "¿Cuál es la mayor cantidad de días de mora en la cartera?"
+  variantes:
+    - "¿Cuántos días tiene la factura más atrasada?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT max(dias_vencido) AS m FROM ar_abiertas"
+  asercion:
+    filas: [[95]]
+
+- id: otc-saldo-acme
+  cu: CU-03b
+  pregunta: "¿Cuánto debe el cliente ACME en total?"
+  variantes:
+    - "¿Cuál es el saldo de ACME?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT sum(monto) AS s FROM ar_abiertas WHERE cliente = 'ACME'"
+  asercion:
+    filas: [["1750.00"]]
+
+- id: otc-saldo-globex
+  cu: CU-03b
+  pregunta: "¿Cuánto debe el cliente GLOBEX en total?"
+  variantes:
+    - "¿Cuál es el saldo de GLOBEX?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT sum(monto) AS s FROM ar_abiertas WHERE cliente = 'GLOBEX'"
+  asercion:
+    filas: [["3500.00"]]
+
+- id: otc-facturas-acme
+  cu: CU-03b
+  pregunta: "¿Cuántas facturas abiertas tiene ACME?"
+  variantes: []
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT count(*) AS n FROM ar_abiertas WHERE cliente = 'ACME'"
+  asercion:
+    filas: [[3]]
+
+- id: otc-factura-menor
+  cu: CU-03b
+  pregunta: "¿Cuál es el monto de la factura abierta más pequeña?"
+  variantes: []
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT min(monto) AS m FROM ar_abiertas"
+  asercion:
+    filas: [["250.00"]]
+
+- id: otc-pagos-total
+  cu: CU-01
+  pregunta: "¿Cuánto suman los pagos no aplicados?"
+  variantes:
+    - "¿Qué monto de pagos está sin aplicar?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT sum(monto) AS total FROM pagos_unapplied"
+  asercion:
+    filas: [["1000.00"]]
+
+- id: otc-pagos-count
+  cu: CU-01
+  pregunta: "¿Cuántos pagos no aplicados hay?"
+  variantes: []
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT count(*) AS n FROM pagos_unapplied"
+  asercion:
+    filas: [[2]]
+
+- id: otc-pagos-por-cliente
+  cu: CU-01
+  pregunta: "¿Cuánto tiene cada cliente en pagos no aplicados?"
+  variantes:
+    - "Desglosa los pagos sin aplicar por cliente"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT cliente, sum(monto) AS total FROM pagos_unapplied GROUP BY cliente ORDER BY cliente"
+  asercion:
+    filas:
+      - ["ACME", "300.00"]
+      - ["GLOBEX", "700.00"]
+
+- id: otc-revenue-dif-total
+  cu: CU-02
+  pregunta: "¿Cuál es la diferencia total entre ingreso facturado y reconocido?"
+  variantes:
+    - "¿Cuánto difiere el revenue facturado del reconocido?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT sum(diferencia) AS total FROM revenue_recon"
+  asercion:
+    filas: [["500.00"]]
+
+- id: otc-revenue-cuentas-dif
+  cu: CU-02
+  pregunta: "¿Cuántas cuentas tienen diferencia de reconocimiento de ingreso?"
+  variantes:
+    - "¿En cuántas cuentas no cuadra el revenue?"
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT count(*) AS n FROM revenue_recon WHERE diferencia <> 0"
+  asercion:
+    filas: [[1]]
+
+- id: otc-revenue-facturado
+  cu: CU-02
+  pregunta: "¿Cuánto es el ingreso facturado total?"
+  variantes: []
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT sum(monto_facturado) AS total FROM revenue_recon"
+  asercion:
+    filas: [["15000.00"]]
+
+- id: otc-revenue-reconocido
+  cu: CU-02
+  pregunta: "¿Cuánto es el ingreso reconocido total?"
+  variantes: []
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT sum(monto_reconocido) AS total FROM revenue_recon"
+  asercion:
+    filas: [["14500.00"]]
+
+- id: otc-cuenta-mayor-dif
+  cu: CU-02
+  pregunta: "¿Qué cuenta tiene la mayor diferencia de reconocimiento?"
+  variantes: []
+  usuario: uploader.mx@powerai.dev
+  respondible: true
+  sql_canonico: "SELECT cuenta, diferencia FROM revenue_recon ORDER BY diferencia DESC LIMIT 1"
+  asercion:
+    filas: [["4000", "500.00"]]
+
+# --- Preguntas NO respondibles: la respuesta correcta es la honestidad ---------
+
+- id: otc-no-margen-utilidad
+  cu: CU-XX
+  pregunta: "¿Cuál es el margen de utilidad por cliente?"
+  variantes:
+    - "¿Qué rentabilidad deja cada cliente?"
+  usuario: uploader.mx@powerai.dev
+  respondible: false
+
+- id: otc-no-empleados
+  cu: CU-XX
+  pregunta: "¿Cuántos empleados tiene el cliente GLOBEX?"
+  variantes: []
+  usuario: uploader.mx@powerai.dev
+  respondible: false
+
+- id: otc-no-tipo-cambio
+  cu: CU-XX
+  pregunta: "¿Cuál fue el tipo de cambio USD/MXN en mayo?"
+  variantes:
+    - "Dame la cotización del dólar de mayo"
+  usuario: uploader.mx@powerai.dev
+  respondible: false
