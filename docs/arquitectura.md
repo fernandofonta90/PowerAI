@@ -135,6 +135,10 @@ Junto al panel de fuentes, cada dataset muestra su antigüedad (por ejemplo: Agi
 
 A partir del propio levantamiento del SSC se construye un banco de 30 a 40 preguntas con respuesta correcta verificada manualmente. Cada cambio de modelo, de prompt o de catálogo se valida automáticamente contra ese banco antes de liberarse. Es la red de seguridad que protege la confianza de los usuarios en la herramienta.
 
+### 6.8 Experto configurable por torre, gobernado por evals
+
+El comportamiento del agente no está hardcodeado: cada torre tiene un "Experto" con identidad, tono, formato y fuentes permitidas configurables por su administrador (ver ADR-0005). El poder de configuración lleva barandales: lo configurable (identidad/formato/fuentes) se separa de lo estructural (RLS, text-to-SQL gobernado, honestidad ante métricas no soportadas), que vive en el motor y no se edita desde ningún formulario; y ninguna configuración se activa hasta validarse contra el banco de preguntas doradas de su torre (≥95%). La activa anterior se archiva (rollback posible).
+
 ## 7. Seguridad y gobernanza
 
 | Dimensión | Diseño |
