@@ -64,7 +64,7 @@ def db_session(engine: Any) -> Iterator[Any]:
                 text(
                     "TRUNCATE usuario, plantilla_reporte, carga_archivo, "
                     "vista_catalogo, bitacora_consulta, conversacion, mensaje, "
-                    "mensaje_consulta, dashboard CASCADE"
+                    "mensaje_consulta, dashboard, pregunta_catalogo CASCADE"
                 )
             )
 
@@ -140,6 +140,15 @@ def seed_vistas(db_session: Any) -> Any:
 
     sembrar_plantillas(db_session)
     sembrar_vistas(db_session)
+    return db_session
+
+
+@pytest.fixture
+def seed_catalogo(db_session: Any) -> Any:
+    """Siembra el catálogo navegable de preguntas desde el seed real."""
+    from app.scripts.seed_catalogo import sembrar_catalogo
+
+    sembrar_catalogo(db_session)
     return db_session
 
 
