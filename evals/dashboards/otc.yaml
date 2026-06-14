@@ -1,0 +1,35 @@
+# Banco de evals de generación de dashboards (OTC) — petición NL → spec.
+#
+# Validación semántica (sin aflojar): la spec debe ser válida, contener los tipos
+# de visual esperados (si se listan) y, al ejecutar sus queries por el motor, deben
+# aparecer los valores esperados (verificados por construcción del dataset de
+# referencia, app/evals/dataset.py). Los no respondibles deben declararse con
+# honestidad (spec nula).
+
+- id: dash-cartera-total
+  peticion: "Arma un tablero con el total de la cartera abierta"
+  respondible: true
+  tipos_esperados: ["kpi"]
+  valores_esperados: ["5550.00"]
+
+- id: dash-saldo-por-cliente
+  peticion: "Quiero un tablero del saldo de cartera por cliente"
+  respondible: true
+  tipos_esperados: []
+  valores_esperados: ["3500.00", "1750.00"]
+
+- id: dash-aging
+  peticion: "Dame un tablero del aging de la cartera por tramos de mora"
+  respondible: true
+  tipos_esperados: []
+  valores_esperados: ["3000.00"]
+
+- id: dash-pagos-unapplied
+  peticion: "Un tablero de los pagos no aplicados"
+  respondible: true
+  tipos_esperados: []
+  valores_esperados: ["1000.00"]
+
+- id: dash-no-margen
+  peticion: "Un tablero de rentabilidad y margen por cliente"
+  respondible: false
