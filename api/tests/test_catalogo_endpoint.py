@@ -26,9 +26,7 @@ def _todas_las_preguntas(bloques: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def test_catalogo_completo_muestra_todas_las_torres(client: Any) -> None:
-    resp = client.get(
-        "/catalogo/preguntas", headers={"X-Mock-User": "uploader.mx@powerai.dev"}
-    )
+    resp = client.get("/catalogo/preguntas", headers={"X-Mock-User": "uploader.mx@powerai.dev"})
     assert resp.status_code == 200
     bloques = resp.json()
     torres = {b["torre"] for b in bloques}
@@ -37,9 +35,7 @@ def test_catalogo_completo_muestra_todas_las_torres(client: Any) -> None:
 
 
 def test_otc_activas_ejecutables_proximamente_no(client: Any) -> None:
-    resp = client.get(
-        "/torres/OTC/preguntas", headers={"X-Mock-User": "uploader.mx@powerai.dev"}
-    )
+    resp = client.get("/torres/OTC/preguntas", headers={"X-Mock-User": "uploader.mx@powerai.dev"})
     assert resp.status_code == 200
     bloque = resp.json()
     assert bloque["torre"] == "OTC"
@@ -55,9 +51,7 @@ def test_otc_activas_ejecutables_proximamente_no(client: Any) -> None:
 
 
 def test_ninguna_proximamente_es_ejecutable_en_todo_el_catalogo(client: Any) -> None:
-    resp = client.get(
-        "/catalogo/preguntas", headers={"X-Mock-User": "admin.otc@powerai.dev"}
-    )
+    resp = client.get("/catalogo/preguntas", headers={"X-Mock-User": "admin.otc@powerai.dev"})
     assert resp.status_code == 200
     preguntas = _todas_las_preguntas(resp.json())
     proximas = [p for p in preguntas if p["estado"] == "proximamente"]

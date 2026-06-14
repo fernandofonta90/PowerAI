@@ -46,9 +46,7 @@ def upgrade() -> None:
     op.create_index(
         op.f("ix_pregunta_catalogo_codigo"), "pregunta_catalogo", ["codigo"], unique=True
     )
-    op.create_index(
-        op.f("ix_pregunta_catalogo_torre_clave"), "pregunta_catalogo", ["torre_clave"]
-    )
+    op.create_index(op.f("ix_pregunta_catalogo_torre_clave"), "pregunta_catalogo", ["torre_clave"])
 
 
 def downgrade() -> None:

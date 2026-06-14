@@ -21,9 +21,7 @@ class PreguntaCatalogo(Base, TimestampMixin):
 
     __tablename__ = "pregunta_catalogo"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     codigo: Mapped[str] = mapped_column(String(40), unique=True, nullable=False, index=True)
     torre_clave: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
     torre_nombre: Mapped[str] = mapped_column(String(120), nullable=False)
