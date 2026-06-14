@@ -14,7 +14,7 @@ from app.auth.schemas import UsuarioAutenticado
 from app.config import get_settings
 from app.db import get_db
 from app.ia.agente import Citacion, DatosTabulares
-from app.ia.proveedor import get_llm_provider
+from app.ia.proveedor import UsoTokens, get_llm_provider
 from app.models.conversacion import Conversacion, Mensaje
 from app.services.conversaciones import crear_conversacion, enviar_mensaje
 
@@ -62,6 +62,7 @@ class RespuestaChat(BaseModel):
     texto: str
     datos_tabulares: DatosTabulares | None
     citacion: Citacion
+    uso: UsoTokens
 
 
 def _conversacion_propia(
@@ -137,4 +138,5 @@ def enviar(
         texto=resultado.texto,
         datos_tabulares=resultado.datos_tabulares,
         citacion=resultado.citacion,
+        uso=resultado.uso,
     )

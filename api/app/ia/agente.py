@@ -19,7 +19,13 @@ from sqlalchemy.orm import Session
 
 from app.auth.schemas import UsuarioAutenticado
 from app.domain.enums import EstadoFrescura
-from app.ia.proveedor import LLMProvider, MensajeChat, ToolSpec
+from app.ia.proveedor import (
+    LLMProvider,
+    MensajeChat,
+    ProveedorLLMError,
+    ToolSpec,
+    UsoTokens,
+)
 from app.ia.sql_guard import SqlNoPermitido, validar_select
 from app.models.carga import CargaArchivo
 from app.models.vista import VistaCatalogo
@@ -34,7 +40,22 @@ _SISTEMA = (
     "descubrir qué vistas y columnas existen, y ejecutar_sql (solo SELECT de DuckDB) "
     "para obtener los datos. No inventes cifras: si la pregunta no puede responderse "
     "con las vistas disponibles, dilo con claridad. Cita siempre tus fuentes a partir "
-    "de los datos consultados. Responde en español, de forma concisa y para negocio."
+    "de los datos consultados. Responde en español, de forma concisa y para negocio.\n"
+    "HONESTIDAD ANTE MÉTRICAS NO SOPORTADAS: si la métrica o el dato pedido NO mapea "
+    "a una columna existente de las vistas del catálogo, es una pregunta NO "
+    "respondible: declara explícitamente que no puedes responderla con las vistas "
+    "disponibles y NO ejecutes SQL. En particular, el catálogo no tiene datos de "
+    "costo, por lo que NO puedes calcular rentabilidad, margen ni utilidad. NUNCA "
+    "sustituyas la métrica pedida por otra (p. ej. no uses el saldo o la cartera como "
+    "aproximación de rentabilidad): aproximar es inventar.\n"
+    "Reglas para el SQL que generes:\n"
+    "- Selecciona SOLO las columnas que la pregunta pide; no agregues columnas de "
+    "contexto (moneda, descripción, fechas) salvo que se pidan explícitamente.\n"
+    "- Si la pregunta pide un único valor agregado (un total, una suma, un conteo), "
+    "devuelve UNA sola columna con ese valor, sin agrupar por otras columnas.\n"
+    "- Para la antigüedad de la cartera (aging) usa exactamente estos tramos por "
+    "días vencidos: 'corriente' (=0), '1-30' (1 a 30), '31-60' (31 a 60) y '60+' "
+    "(más de 60), una fila por tramo con la suma de monto."
 )
 
 _TOOLS: list[ToolSpec] = [
@@ -93,6 +114,7 @@ class ResultadoAgente(BaseModel):
     texto: str
     datos_tabulares: DatosTabulares | None = None
     citacion: Citacion
+    uso: UsoTokens = UsoTokens()
 
 
 @dataclass
@@ -101,6 +123,8 @@ class _Acumulador:
     versiones: list[VersionDato] = field(default_factory=list)
     vistas: set[str] = field(default_factory=set)
     datos: DatosTabulares | None = None
+    tokens_entrada: int = 0
+    tokens_salida: int = 0
 
 
 def _vistas_json(db: Session, usuario: UsuarioAutenticado) -> str:
@@ -198,6 +222,7 @@ def _resultado(db: Session, texto: str, acum: _Acumulador) -> ResultadoAgente:
             sql_ejecutado_ids=acum.bitacora_ids,
             vistas_usadas=sorted(acum.vistas),
         ),
+        uso=UsoTokens(entrada=acum.tokens_entrada, salida=acum.tokens_salida),
     )
 
 
@@ -221,7 +246,20 @@ def responder(
     acum = _Acumulador()
 
     for _ in range(max_iteraciones):
-        resp = provider.completar(mensajes, _TOOLS)
+        try:
+            resp = provider.completar(mensajes, _TOOLS)
+        except ProveedorLLMError:
+            # Fallo del servicio de IA tras reintentos: responde con honestidad,
+            # sin inventar, conservando lo que se haya podido citar.
+            return _resultado(
+                db,
+                "No pude completar la respuesta por un problema temporal con el "
+                "servicio de IA. Intenta de nuevo en unos momentos.",
+                acum,
+            )
+        if resp.uso is not None:
+            acum.tokens_entrada += resp.uso.entrada
+            acum.tokens_salida += resp.uso.salida
         if not resp.tool_calls:
             return _resultado(db, resp.contenido or "", acum)
 

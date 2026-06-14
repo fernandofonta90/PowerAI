@@ -36,11 +36,23 @@ class MensajeChat(BaseModel):
     tool_call_id: str | None = None
 
 
+class UsoTokens(BaseModel):
+    """Tokens consumidos por una llamada al modelo (insumo del control de costos)."""
+
+    entrada: int = 0
+    salida: int = 0
+
+
 class RespuestaLLM(BaseModel):
     """Respuesta del modelo: texto final y/o llamadas a herramientas."""
 
     contenido: str | None = None
     tool_calls: list[LlamadaTool] = []
+    uso: UsoTokens | None = None
+
+
+class ProveedorLLMError(Exception):
+    """Fallo terminal del proveedor LLM (tras reintentos): no se pudo completar."""
 
 
 class LLMProvider(ABC):
@@ -48,7 +60,10 @@ class LLMProvider(ABC):
 
     @abstractmethod
     def completar(self, mensajes: list[MensajeChat], tools: list[ToolSpec]) -> RespuestaLLM:
-        """Devuelve la siguiente respuesta del modelo dados el hilo y las tools."""
+        """Devuelve la siguiente respuesta del modelo.
+
+        Lanza :class:`ProveedorLLMError` si no puede completar tras reintentos.
+        """
 
 
 _provider: LLMProvider | None = None

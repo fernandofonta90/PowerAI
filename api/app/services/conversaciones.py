@@ -65,6 +65,8 @@ def enviar_mensaje(
         rol="assistant",
         contenido=resultado.texto,
         citacion_json=resultado.citacion.model_dump(mode="json"),
+        tokens_entrada=resultado.uso.entrada,
+        tokens_salida=resultado.uso.salida,
     )
     if resultado.citacion.sql_ejecutado_ids:
         mensaje.consultas = list(

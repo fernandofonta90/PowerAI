@@ -8,7 +8,17 @@ Dos modos:
   respuesta. Así el producto se ve y se prueba sin Azure OpenAI.
 """
 
-from app.ia.proveedor import LlamadaTool, LLMProvider, MensajeChat, RespuestaLLM, ToolSpec
+from app.ia.proveedor import (
+    LlamadaTool,
+    LLMProvider,
+    MensajeChat,
+    RespuestaLLM,
+    ToolSpec,
+    UsoTokens,
+)
+
+# Uso de tokens simulado por llamada (para ejercitar el registro de consumo).
+_USO_FAKE = UsoTokens(entrada=10, salida=5)
 
 # Consulta representativa para la demo: saldo por cliente de la cartera abierta.
 # Si el usuario no tiene datos visibles (RLS), devuelve vacío (respuesta honesta).
@@ -29,11 +39,15 @@ class FakeProvider(LLMProvider):
         self.hilos.append(list(mensajes))
         if self._guion is not None:
             if self._i >= len(self._guion):
-                return RespuestaLLM(contenido="(fin del guion de prueba)")
-            respuesta = self._guion[self._i]
-            self._i += 1
-            return respuesta
-        return self._demo(mensajes, tools)
+                respuesta = RespuestaLLM(contenido="(fin del guion de prueba)")
+            else:
+                respuesta = self._guion[self._i]
+                self._i += 1
+        else:
+            respuesta = self._demo(mensajes, tools)
+        if respuesta.uso is None:
+            respuesta.uso = _USO_FAKE
+        return respuesta
 
     def _demo(self, mensajes: list[MensajeChat], tools: list[ToolSpec]) -> RespuestaLLM:
         # Si ya hay un resultado de herramienta en el hilo, redacta la respuesta final.

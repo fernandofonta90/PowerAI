@@ -38,7 +38,9 @@ VISTAS_OTC: list[DefVista] = [
         descripcion=(
             "Facturas de clientes pendientes de cobro (cuentas por cobrar abiertas) "
             "con su antigüedad. Úsala para cartera vencida, aging, días de mora y "
-            "saldos por cliente."
+            "saldos por cliente. Para el aging, los tramos estándar por 'dias_vencido' "
+            "son: 'corriente' (0), '1-30' (1-30), '31-60' (31-60) y '60+' (>60). "
+            "El saldo abierto es la suma de 'monto'."
         ),
         plantilla_codigo="otc_ar_abiertas",
         sql=(
