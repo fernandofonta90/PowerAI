@@ -58,4 +58,40 @@ export type RespuestaChat = {
   texto: string;
   datos_tabulares: DatosTabulares | null;
   citacion: Citacion;
+  uso?: { entrada: number; salida: number };
+};
+
+// --- Dashboards (M8) ---
+
+export type DashboardMeta = {
+  id: string;
+  nombre: string;
+  torre: string;
+  creado_en: string;
+};
+
+export type VisualRenderizado = {
+  tipo: "kpi" | "tabla" | "barras" | "lineas" | "distribucion";
+  titulo: string;
+  columna_valor: string | null;
+  eje_x: string | null;
+  eje_y: string | null;
+  formato: "entero" | "decimal" | "texto";
+  columnas: string[];
+  filas: Celda[][];
+  error: string | null;
+};
+
+export type DashboardRenderizado = {
+  id: string;
+  nombre: string;
+  torre: string;
+  filtros: Record<string, unknown>;
+  titulo: string;
+  visuales: VisualRenderizado[];
+};
+
+export type GenerarDashboardResponse = {
+  spec: Record<string, unknown> | null;
+  mensaje: string;
 };

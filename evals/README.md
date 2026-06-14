@@ -65,6 +65,19 @@ motor y la RLS no se tocan). Sale con código ≠ 0 si la tasa < 95%.
 
 (El runner también acepta `--nivel motor` para correrlo contra una BD real.)
 
+## Evals de dashboards (M8)
+
+Banco aparte en `evals/dashboards/` (petición NL → spec). Validación semántica de
+la generación: la spec debe ser válida, traer los tipos de visual esperados y, al
+ejecutar sus queries por el motor, surgir los valores esperados; los no respondibles
+deben declararse con honestidad. Gated por Azure (manual):
+
+```bash
+cd api
+uv run python -c "from app.db import SessionLocal; from app.evals.dashboards import cargar_casos, evaluar_dashboards; from app.ia.proveedor import get_llm_provider; \
+db=SessionLocal(); print(evaluar_dashboards(db, get_llm_provider(), cargar_casos()).resumen())"
+```
+
 ## Añadir preguntas
 
 1. Diseña el caso sobre el dataset de referencia (o amplíalo en `dataset.py` de

@@ -1,6 +1,6 @@
 "use client";
 
-import { Send } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ContextGrid } from "@/components/ContextGrid";
@@ -12,7 +12,7 @@ import { saludo } from "@/lib/format";
 import type { Conversacion } from "@/lib/types";
 import { buscarUsuario } from "@/lib/usuarios";
 
-// Home (spec canónica del design system): hero de pregunta + chips + grid de 3.
+// Home (spec canónica del design system): hero de pregunta protagonista + grid.
 export default function HomePage() {
   const router = useRouter();
   const { email } = useUsuario();
@@ -33,20 +33,21 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl px-6 py-12">
-      {/* 1. Hero de pregunta (centrado) */}
-      <section className="flex flex-col items-center text-center">
-        <h1 className="flex items-center gap-2 text-[17px] font-medium text-neutral-900">
+    <div className="w-full px-6 py-16">
+      {/* 1. Hero de pregunta (centrado, ~560px) */}
+      <section className="mx-auto flex w-full max-w-[560px] flex-col items-center text-center">
+        <h1 className="flex items-center gap-2 text-[21px] font-medium text-neutral-900">
           <Sparkle className="h-5 w-5 text-brand-600" />
-          {saludo()}{nombre ? `, ${nombre}` : ""}
+          {saludo()}
+          {nombre ? `, ${nombre}` : ""}
         </h1>
-        <p className="mt-1 text-[12.5px] text-neutral-500">
+        <p className="mt-1.5 text-[14px] text-neutral-500">
           Pregunta sobre la información de tu torre
         </p>
 
-        <div className="mt-5 w-full max-w-[480px]">
-          <div className="flex items-center gap-2 rounded-xl border border-brand-200 bg-white px-3 py-2.5 shadow-hero">
-            <Sparkle className="h-4 w-4 shrink-0 text-brand-600" />
+        <div className="mt-7 w-full">
+          <div className="flex items-center gap-2 rounded-2xl border border-brand-200 bg-white px-4 py-3 shadow-hero">
+            <Sparkle className="h-5 w-5 shrink-0 text-brand-600" />
             <input
               type="text"
               value={texto}
@@ -55,24 +56,26 @@ export default function HomePage() {
               onKeyDown={(e) => e.key === "Enter" && iniciar(texto)}
               placeholder="Pregúntame lo que quieras"
               aria-label="Escribe tu pregunta"
-              className="min-w-0 flex-1 bg-transparent text-[14px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none"
             />
             <button
               type="button"
               onClick={() => iniciar(texto)}
               disabled={ocupado || texto.trim() === ""}
               aria-label="Enviar pregunta"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-brand-600 text-white disabled:opacity-40"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white transition-opacity disabled:opacity-40"
             >
-              <Send className="h-4 w-4" aria-hidden />
+              <ArrowUp className="h-[18px] w-[18px]" aria-hidden />
             </button>
           </div>
           <SugeridasChips onElegir={iniciar} />
         </div>
       </section>
 
-      {/* 2. Grid de contexto (3 tarjetas) */}
-      <ContextGrid />
+      {/* 2. Grid de contexto (~760px) */}
+      <div className="mx-auto mt-12 w-full max-w-[760px]">
+        <ContextGrid />
+      </div>
     </div>
   );
 }

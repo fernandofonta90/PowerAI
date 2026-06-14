@@ -83,21 +83,25 @@ Reglas: texto sobre fondo de color usa el stop oscuro de la misma familia. Los s
 
 Estructura en dos bloques verticales sobre fondo blanco:
 
-**1. Hero de pregunta (centrado):**
-- Saludo "Buenos días, {nombre}" (17px, peso 500) con sparkle `brand-600` + línea de contexto "Pregunta sobre la información de tu torre" (12.5px, `neutral-500`).
-- Campo de pregunta (máx. 480px centrado): borde `brand-200`, radio 12px, sombra sutil violeta (`rgba(69,58,150,0.08)`), sparkle `brand-600` a la izquierda, placeholder, botón circular de envío `brand-600` a la derecha. Enter o clic navega al chat con la pregunta enviada.
-- Debajo, 3–4 chips de preguntas sugeridas por torre (pill, fondo `brand-50`, borde `brand-200`, texto `brand-800`, 11px), alimentadas desde el banco de preguntas doradas. Clic = enviar.
+El hero es el centro de gravedad de la pantalla (práctica Claude/ChatGPT/Gemini), con anchos acotados — no se estira a todo el ancho.
 
-**2. Grid de contexto (3 tarjetas iguales, borde `neutral-100`, radio 12px):**
-- **Fuentes de mi torre:** lista de plantillas con frescura a la derecha (verde/ámbar/rojo con icono). Acción "Cargar" en el encabezado si el usuario tiene rol uploader.
-- **Mis dashboards:** label con sparkle `brand-600` (contenido generado por IA). Cada ítem: tile 24px `brand-100` con icono `brand-800` + nombre + "datos de {fecha}". Link "Ver todos →" en `brand-800`. Fase 1: estado vacío "disponible próximamente".
-- **Alertas recientes:** ítems con icono de severidad (rojo/ámbar) + texto 11px. Fase 1: estado vacío equivalente.
+**1. Hero de pregunta (columna centrada, máx. 560px):**
+- Saludo "Buenos días, {nombre}" (21px, peso 500) con sparkle `brand-600` + línea de contexto "Pregunta sobre la información de tu torre" (14px, `neutral-500`).
+- Campo de pregunta protagonista (~52px de alto, texto 15px, padding generoso): borde `brand-200`, radio 16px, sombra sutil violeta (`rgba(69,58,150,0.08)`), sparkle `brand-600` a la izquierda, placeholder, y botón circular de envío con flecha-arriba (`arrow-up`) en `brand-600` a la derecha. Enter o clic navega al chat con la pregunta enviada.
+- Debajo, 3–4 preguntas sugeridas por torre como **lista vertical** (no óvalos flotando): cada una un botón a ancho completo, alineado a la izquierda, fondo `brand-50`, borde `brand-100`, radio 8px, texto `brand-800` 13.5px. Alimentadas desde el banco de preguntas doradas. Clic = enviar.
+
+**2. Grid de contexto (columna centrada, máx. 760px; 3 tarjetas iguales, borde `neutral-100`, radio 12px, padding ~15px):**
+- Título de tarjeta 13px peso 500; cuerpo 12.5–13px.
+- **Fuentes de mi torre:** lista de plantillas con badge de frescura a la derecha (pill: "Al día" verde sobre fondo suave, "Atención" ámbar, "Vencido" rojo; siempre con icono). Acción "Cargar" en el encabezado si el usuario tiene rol uploader.
+- **Mis dashboards:** label con sparkle `brand-600` (contenido generado por IA). Cada ítem: tile `brand-100` con icono `brand-800` + nombre enlazado. Estado vacío: icono centrado + texto.
+- **Alertas recientes:** estado vacío equivalente (icono centrado + texto).
+- Estados vacíos: icono atenuado centrado (`neutral-200`) + texto `neutral-400` 12.5px.
 
 **Regla del sparkle:** el sparkle marca presencia de IA, nunca decora. Aparece en: saludo de bienvenida, campo de pregunta, avatar del asistente, y labels de contenido generado por IA (dashboards). No aparece en: fuentes, alertas, tablas de datos ni navegación. Si todo brilla, nada brilla.
 
 Reglas del home:
 - El grid de 3 tarjetas existe desde Fase 1 aunque dos estén en estado vacío — el layout no se reacomoda al llegar Fase 2.
-- Responsive: bajo 900px el grid pasa a 1 columna; el hero mantiene el campo a ancho completo.
+- Responsive: bajo ~900px el grid pasa a 1 columna; el hero mantiene el campo a ancho completo de su columna.
 - El home es por torre: todo su contenido respeta el RBAC torre × país del usuario autenticado.
 
 ## Accesibilidad
