@@ -2,6 +2,8 @@
 
 Traduce los modelos agnósticos del proveedor (MensajeChat/ToolSpec/RespuestaLLM)
 al formato del SDK de OpenAI y de vuelta. Es la ÚNICA pieza que importa el SDK.
+Reintenta ante errores transitorios (rate limit, 5xx, timeouts) y reclasifica
+cualquier fallo terminal como ProveedorLLMError (mensaje claro, sin stack críptico).
 """
 
 import json
@@ -12,9 +14,12 @@ from app.ia.proveedor import (
     LlamadaTool,
     LLMProvider,
     MensajeChat,
+    ProveedorLLMError,
     RespuestaLLM,
     ToolSpec,
+    UsoTokens,
 )
+from app.ia.reintentos import reintentar
 
 
 def _a_openai(m: MensajeChat) -> dict[str, Any]:
@@ -33,6 +38,20 @@ def _a_openai(m: MensajeChat) -> dict[str, Any]:
     return msg
 
 
+def _es_transitorio(exc: Exception) -> bool:
+    import openai
+
+    return isinstance(
+        exc,
+        (
+            openai.RateLimitError,
+            openai.APITimeoutError,
+            openai.APIConnectionError,
+            openai.InternalServerError,
+        ),
+    )
+
+
 class AzureOpenAIProvider(LLMProvider):
     """Implementación de LLMProvider contra Azure OpenAI."""
 
@@ -40,6 +59,17 @@ class AzureOpenAIProvider(LLMProvider):
         from openai import AzureOpenAI
 
         s = get_settings()
+        faltantes = [
+            n
+            for n, v in (
+                ("POWERAI_AZURE_OPENAI_ENDPOINT", s.azure_openai_endpoint),
+                ("POWERAI_AZURE_OPENAI_API_KEY", s.azure_openai_api_key),
+                ("POWERAI_AZURE_OPENAI_DEPLOYMENT", s.azure_openai_deployment),
+            )
+            if not v
+        ]
+        if faltantes:
+            raise ProveedorLLMError("Faltan variables de Azure OpenAI: " + ", ".join(faltantes))
         self._client = AzureOpenAI(
             azure_endpoint=s.azure_openai_endpoint,
             api_key=s.azure_openai_api_key,
@@ -59,11 +89,21 @@ class AzureOpenAIProvider(LLMProvider):
             }
             for t in tools
         ]
-        resp = self._client.chat.completions.create(
-            model=self._deployment,
-            messages=[_a_openai(m) for m in mensajes],
-            tools=oai_tools or None,
-        )
+
+        def _llamar() -> Any:
+            return self._client.chat.completions.create(
+                model=self._deployment,
+                messages=[_a_openai(m) for m in mensajes],
+                tools=oai_tools or None,
+            )
+
+        try:
+            resp = reintentar(_llamar, es_transitorio=_es_transitorio)
+        except ProveedorLLMError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - reclasifica a error de proveedor claro
+            raise ProveedorLLMError(f"Azure OpenAI: {exc}") from exc
+
         msg = resp.choices[0].message
         llamadas = [
             LlamadaTool(
@@ -73,4 +113,10 @@ class AzureOpenAIProvider(LLMProvider):
             )
             for tc in (msg.tool_calls or [])
         ]
-        return RespuestaLLM(contenido=msg.content, tool_calls=llamadas)
+        uso = None
+        if resp.usage is not None:
+            uso = UsoTokens(
+                entrada=resp.usage.prompt_tokens or 0,
+                salida=resp.usage.completion_tokens or 0,
+            )
+        return RespuestaLLM(contenido=msg.content, tool_calls=llamadas, uso=uso)

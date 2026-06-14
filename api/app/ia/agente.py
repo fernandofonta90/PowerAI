@@ -19,7 +19,13 @@ from sqlalchemy.orm import Session
 
 from app.auth.schemas import UsuarioAutenticado
 from app.domain.enums import EstadoFrescura
-from app.ia.proveedor import LLMProvider, MensajeChat, ToolSpec
+from app.ia.proveedor import (
+    LLMProvider,
+    MensajeChat,
+    ProveedorLLMError,
+    ToolSpec,
+    UsoTokens,
+)
 from app.ia.sql_guard import SqlNoPermitido, validar_select
 from app.models.carga import CargaArchivo
 from app.models.vista import VistaCatalogo
@@ -93,6 +99,7 @@ class ResultadoAgente(BaseModel):
     texto: str
     datos_tabulares: DatosTabulares | None = None
     citacion: Citacion
+    uso: UsoTokens = UsoTokens()
 
 
 @dataclass
@@ -101,6 +108,8 @@ class _Acumulador:
     versiones: list[VersionDato] = field(default_factory=list)
     vistas: set[str] = field(default_factory=set)
     datos: DatosTabulares | None = None
+    tokens_entrada: int = 0
+    tokens_salida: int = 0
 
 
 def _vistas_json(db: Session, usuario: UsuarioAutenticado) -> str:
@@ -198,6 +207,7 @@ def _resultado(db: Session, texto: str, acum: _Acumulador) -> ResultadoAgente:
             sql_ejecutado_ids=acum.bitacora_ids,
             vistas_usadas=sorted(acum.vistas),
         ),
+        uso=UsoTokens(entrada=acum.tokens_entrada, salida=acum.tokens_salida),
     )
 
 
@@ -221,7 +231,20 @@ def responder(
     acum = _Acumulador()
 
     for _ in range(max_iteraciones):
-        resp = provider.completar(mensajes, _TOOLS)
+        try:
+            resp = provider.completar(mensajes, _TOOLS)
+        except ProveedorLLMError:
+            # Fallo del servicio de IA tras reintentos: responde con honestidad,
+            # sin inventar, conservando lo que se haya podido citar.
+            return _resultado(
+                db,
+                "No pude completar la respuesta por un problema temporal con el "
+                "servicio de IA. Intenta de nuevo en unos momentos.",
+                acum,
+            )
+        if resp.uso is not None:
+            acum.tokens_entrada += resp.uso.entrada
+            acum.tokens_salida += resp.uso.salida
         if not resp.tool_calls:
             return _resultado(db, resp.contenido or "", acum)
 
