@@ -40,7 +40,15 @@ _SISTEMA = (
     "descubrir qué vistas y columnas existen, y ejecutar_sql (solo SELECT de DuckDB) "
     "para obtener los datos. No inventes cifras: si la pregunta no puede responderse "
     "con las vistas disponibles, dilo con claridad. Cita siempre tus fuentes a partir "
-    "de los datos consultados. Responde en español, de forma concisa y para negocio."
+    "de los datos consultados. Responde en español, de forma concisa y para negocio.\n"
+    "Reglas para el SQL que generes:\n"
+    "- Selecciona SOLO las columnas que la pregunta pide; no agregues columnas de "
+    "contexto (moneda, descripción, fechas) salvo que se pidan explícitamente.\n"
+    "- Si la pregunta pide un único valor agregado (un total, una suma, un conteo), "
+    "devuelve UNA sola columna con ese valor, sin agrupar por otras columnas.\n"
+    "- Para la antigüedad de la cartera (aging) usa exactamente estos tramos por "
+    "días vencidos: 'corriente' (=0), '1-30' (1 a 30), '31-60' (31 a 60) y '60+' "
+    "(más de 60), una fila por tramo con la suma de monto."
 )
 
 _TOOLS: list[ToolSpec] = [

@@ -50,10 +50,31 @@ def test_error_no_transitorio_se_propaga_sin_reintento() -> None:
     assert intentos["n"] == 1  # no reintentó
 
 
-def test_provider_azure_sin_credenciales_falla_claro() -> None:
-    from app.ia.azure_openai import AzureOpenAIProvider
+def test_variables_faltantes_detecta_credenciales_vacias() -> None:
+    from app.config import Settings
+    from app.ia.azure_openai import variables_faltantes
 
-    # En el entorno de test las variables de Azure están vacías.
-    with pytest.raises(ProveedorLLMError) as exc:
-        AzureOpenAIProvider()
-    assert "Azure OpenAI" in str(exc.value)
+    # Config con Azure vacío (independiente del .env real del entorno).
+    s = Settings(
+        azure_openai_endpoint="",
+        azure_openai_api_key="",
+        azure_openai_deployment="",
+    )
+    faltantes = variables_faltantes(s)
+    assert faltantes == [
+        "POWERAI_AZURE_OPENAI_ENDPOINT",
+        "POWERAI_AZURE_OPENAI_API_KEY",
+        "POWERAI_AZURE_OPENAI_DEPLOYMENT",
+    ]
+
+
+def test_variables_faltantes_vacio_si_completas() -> None:
+    from app.config import Settings
+    from app.ia.azure_openai import variables_faltantes
+
+    s = Settings(
+        azure_openai_endpoint="https://x.openai.azure.com",
+        azure_openai_api_key="k",
+        azure_openai_deployment="gpt",
+    )
+    assert variables_faltantes(s) == []

@@ -52,6 +52,19 @@ def _es_transitorio(exc: Exception) -> bool:
     )
 
 
+def variables_faltantes(settings: Any) -> list[str]:
+    """Variables de Azure OpenAI ausentes en la configuración (vacío = completas)."""
+    return [
+        nombre
+        for nombre, valor in (
+            ("POWERAI_AZURE_OPENAI_ENDPOINT", settings.azure_openai_endpoint),
+            ("POWERAI_AZURE_OPENAI_API_KEY", settings.azure_openai_api_key),
+            ("POWERAI_AZURE_OPENAI_DEPLOYMENT", settings.azure_openai_deployment),
+        )
+        if not valor
+    ]
+
+
 class AzureOpenAIProvider(LLMProvider):
     """Implementación de LLMProvider contra Azure OpenAI."""
 
@@ -59,15 +72,7 @@ class AzureOpenAIProvider(LLMProvider):
         from openai import AzureOpenAI
 
         s = get_settings()
-        faltantes = [
-            n
-            for n, v in (
-                ("POWERAI_AZURE_OPENAI_ENDPOINT", s.azure_openai_endpoint),
-                ("POWERAI_AZURE_OPENAI_API_KEY", s.azure_openai_api_key),
-                ("POWERAI_AZURE_OPENAI_DEPLOYMENT", s.azure_openai_deployment),
-            )
-            if not v
-        ]
+        faltantes = variables_faltantes(s)
         if faltantes:
             raise ProveedorLLMError("Faltan variables de Azure OpenAI: " + ", ".join(faltantes))
         self._client = AzureOpenAI(
