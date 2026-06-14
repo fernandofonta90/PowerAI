@@ -4,6 +4,7 @@ from app.models.base import Base
 from app.models.bitacora import BitacoraConsulta
 from app.models.carga import CargaArchivo
 from app.models.conversacion import Conversacion, Mensaje, mensaje_consulta
+from app.models.dashboard import Dashboard
 from app.models.plantilla import PlantillaReporte
 from app.models.usuario import AsignacionPermiso, Usuario
 from app.models.vista import VistaCatalogo
@@ -19,4 +20,5 @@ __all__ = [
     "Conversacion",
     "Mensaje",
     "mensaje_consulta",
+    "Dashboard",
 ]
