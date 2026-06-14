@@ -8,7 +8,7 @@ recorre recibida → procesando → disponible / fallida.
 import uuid
 
 from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.domain.enums import EstadoCarga, Torre
@@ -53,5 +53,9 @@ class CargaArchivo(Base, TimestampMixin):
     blob_path_original: Mapped[str] = mapped_column(String(1000), nullable=False)
     blob_path_parquet: Mapped[str | None] = mapped_column(String(1000), nullable=True)
     filas: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Mapeo aplicado a esta carga (columna_esperada -> columna_en_archivo), si el
+    # archivo no calzaba con la plantilla. NULL = el archivo calzaba tal cual.
+    mapeo_json: Mapped[dict[str, str] | None] = mapped_column(JSONB, nullable=True)
 
     plantilla: Mapped[PlantillaReporte] = relationship(lazy="joined")

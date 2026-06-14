@@ -49,13 +49,25 @@ def registrar_carga(
     periodo: str,
     nombre_archivo: str,
     datos: bytes,
+    mapeo: dict[str, str] | None = None,
 ) -> CargaArchivo:
-    """Valida, almacena y encola una carga. Lanza :class:`CargaRechazada` si falla."""
+    """Valida, almacena y encola una carga. Lanza :class:`CargaRechazada` si falla.
+
+    ``mapeo`` (opcional) acomoda los encabezados del archivo a los nombres que la
+    plantilla espera (cargas siguientes cuyo archivo no calza). El mapeo transforma
+    los datos entrantes; NUNCA modifica la plantilla.
+    """
     # 1. Lectura del archivo.
     try:
         tabla = leer_tabla(datos, nombre_archivo)
     except ArchivoIlegible as exc:
         raise CargaRechazada([str(exc)]) from exc
+
+    # 1b. Mapeo opcional: acomoda la carga a la plantilla (no redefine el molde).
+    if mapeo:
+        from app.services.plantillas import aplicar_mapeo
+
+        tabla = aplicar_mapeo(tabla, mapeo)
 
     # 2. Validación de esquema y verificación de país/periodo (síncrona).
     errores = validar(
@@ -104,6 +116,7 @@ def registrar_carga(
         version=version,
         estado=EstadoCarga.PROCESANDO,
         blob_path_original=destino,
+        mapeo_json=mapeo or None,
     )
     db.add(carga)
     db.commit()
