@@ -49,7 +49,7 @@ Reglas: texto sobre fondo de color usa el stop oscuro de la misma familia. Los s
 
 ### Tipografía
 
-- **Familia:** Inter (self-hosted en `web/public/fonts/`).
+- **Familia:** Inter vía `next/font/google` (se descarga y auto-hospeda en build-time; sin CDN en runtime, cumpliendo el requisito de self-hosting).
 - **Números:** `font-variant-numeric: tabular-nums` obligatorio en celdas numéricas, KPIs y montos. Montos a la derecha.
 - **Escala:** 24px título de bienvenida · 19px títulos de página · 15px subtítulos · 13px cuerpo · 11–12px metadata. Nada por debajo de 10.5px.
 - **Pesos:** 400, 500 y 600 (el 600 exclusivamente para el sufijo de marca y botones primarios).
