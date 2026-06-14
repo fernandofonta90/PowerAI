@@ -64,7 +64,7 @@ def db_session(engine: Any) -> Iterator[Any]:
                 text(
                     "TRUNCATE usuario, plantilla_reporte, carga_archivo, "
                     "vista_catalogo, bitacora_consulta, conversacion, mensaje, "
-                    "mensaje_consulta CASCADE"
+                    "mensaje_consulta, dashboard CASCADE"
                 )
             )
 

@@ -5,7 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
 from app.config import get_settings
-from app.routers import auth, cargas, chat, consulta, health, plantillas, torres
+from app.routers import (
+    auth,
+    cargas,
+    chat,
+    consulta,
+    dashboards,
+    health,
+    plantillas,
+    torres,
+)
 
 
 def create_app() -> FastAPI:
@@ -29,6 +38,7 @@ def create_app() -> FastAPI:
     app.include_router(consulta.router)
     app.include_router(chat.router)
     app.include_router(torres.router)
+    app.include_router(dashboards.router)
     return app
 
 
