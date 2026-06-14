@@ -48,6 +48,13 @@ const config: Config = {
       borderRadius: {
         pill: "99px",
       },
+      fontFamily: {
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+      },
+      boxShadow: {
+        // Sombra sutil violeta del input flotante del hero (design system).
+        hero: "0 2px 12px rgba(69,58,150,0.08)",
+      },
     },
   },
   plugins: [],

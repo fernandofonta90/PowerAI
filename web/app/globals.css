@@ -10,3 +10,8 @@
 body {
   @apply bg-surface-100 text-neutral-900;
 }
+
+/* Focus ring de marca en toda la app (accesibilidad). */
+:focus-visible {
+  @apply outline-none ring-2 ring-brand-600 ring-offset-1;
+}
