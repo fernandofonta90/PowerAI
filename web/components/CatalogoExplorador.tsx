@@ -14,21 +14,26 @@ import type { TorreCatalogo } from "@/lib/types";
 export function CatalogoExplorador({ onElegir }: { onElegir: (pregunta: string) => void }) {
   const { email } = useUsuario();
   const [torres, setTorres] = useState<TorreCatalogo[]>([]);
+  const [cargando, setCargando] = useState(true);
   const [filtro, setFiltro] = useState("");
   const [cerradas, setCerradas] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let activo = true;
+    setCargando(true);
     api
       .get<TorreCatalogo[]>("/catalogo/preguntas")
       .then((t) => activo && setTorres(t))
-      .catch(() => activo && setTorres([]));
+      .catch(() => activo && setTorres([]))
+      .finally(() => activo && setCargando(false));
     return () => {
       activo = false;
     };
   }, [email]);
 
-  // Filtra por texto de pregunta; descarta categorías y torres sin coincidencias.
+  const buscando = filtro.trim().length > 0;
+
+  // El filtro solo se aplica cuando hay texto; vacío => todas las preguntas.
   const visibles = useMemo(() => {
     const q = filtro.trim().toLowerCase();
     if (!q) return torres;
@@ -68,9 +73,13 @@ export function CatalogoExplorador({ onElegir }: { onElegir: (pregunta: string) 
         />
       </div>
 
-      {visibles.length === 0 ? (
+      {cargando && !buscando ? (
+        <p className="py-8 text-center text-[13px] text-neutral-400">Cargando preguntas…</p>
+      ) : visibles.length === 0 ? (
         <p className="py-8 text-center text-[13px] text-neutral-400">
-          No hay preguntas que coincidan con “{filtro}”.
+          {buscando
+            ? `No hay preguntas que coincidan con “${filtro}”.`
+            : "No hay preguntas en el catálogo."}
         </p>
       ) : (
         visibles.map((torre) => (
