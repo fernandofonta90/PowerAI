@@ -83,13 +83,22 @@ export default function HomePage() {
               <ArrowRight className="h-3.5 w-3.5" aria-hidden />
             </Link>
             {adminTorre && (
-              <Link
-                href="/configuracion/experto"
-                className="inline-flex items-center gap-1 text-[13px] text-neutral-500 hover:text-brand-800"
-              >
-                <Settings2 className="h-3.5 w-3.5" aria-hidden />
-                Configurar experto {adminTorre}
-              </Link>
+              <>
+                <Link
+                  href="/configuracion/experto"
+                  className="inline-flex items-center gap-1 text-[13px] text-neutral-500 hover:text-brand-800"
+                >
+                  <Settings2 className="h-3.5 w-3.5" aria-hidden />
+                  Configurar experto {adminTorre}
+                </Link>
+                <Link
+                  href="/plantillas/editar"
+                  className="inline-flex items-center gap-1 text-[13px] text-neutral-500 hover:text-brand-800"
+                >
+                  <Settings2 className="h-3.5 w-3.5" aria-hidden />
+                  Editar plantillas
+                </Link>
+              </>
             )}
           </div>
         </div>
