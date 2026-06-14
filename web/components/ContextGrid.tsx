@@ -38,13 +38,13 @@ export function ContextGrid() {
         titulo="Fuentes de mi torre"
         accion={
           puedeCargar ? (
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-pill border border-neutral-200 px-2 py-1 text-[11px] text-brand-800"
+            <Link
+              href="/cargar"
+              className="inline-flex items-center gap-1 rounded-pill border border-neutral-200 px-2 py-1 text-[11px] text-brand-800 hover:bg-surface-100"
             >
               <Upload className="h-3 w-3" aria-hidden />
               Cargar
-            </button>
+            </Link>
           ) : null
         }
       >
@@ -53,7 +53,10 @@ export function ContextGrid() {
         ) : (
           <ul className="space-y-2">
             {fuentes.map((f, i) => (
-              <li key={i} className="flex items-center justify-between gap-2 text-[12.5px]">
+              <li
+                key={i}
+                className="flex items-center justify-between gap-2 text-[12.5px]"
+              >
                 <span className="truncate text-neutral-700">
                   {f.plantilla_nombre} · {f.pais}
                 </span>
@@ -66,7 +69,12 @@ export function ContextGrid() {
 
       <Tarjeta
         titulo="Mis dashboards"
-        etiqueta={<Sparkle className="h-3.5 w-3.5 text-brand-600" title="Generado por IA" />}
+        etiqueta={
+          <Sparkle
+            className="h-3.5 w-3.5 text-brand-600"
+            title="Generado por IA"
+          />
+        }
       >
         {dashboards.length === 0 ? (
           <Vacio texto="Aún no tienes dashboards. Genera uno desde el chat." />
@@ -77,7 +85,10 @@ export function ContextGrid() {
                 <span className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-brand-100 text-brand-800">
                   <Sparkle className="h-3 w-3" />
                 </span>
-                <Link href={`/dashboards/${d.id}`} className="truncate text-brand-800 hover:underline">
+                <Link
+                  href={`/dashboards/${d.id}`}
+                  className="truncate text-brand-800 hover:underline"
+                >
                   {d.nombre}
                 </Link>
               </li>
@@ -86,7 +97,10 @@ export function ContextGrid() {
         )}
       </Tarjeta>
 
-      <Tarjeta titulo="Alertas recientes" etiqueta={<Bell className="h-3.5 w-3.5 text-neutral-400" />}>
+      <Tarjeta
+        titulo="Alertas recientes"
+        etiqueta={<Bell className="h-3.5 w-3.5 text-neutral-400" />}
+      >
         <Vacio texto="Disponible próximamente." />
       </Tarjeta>
     </div>
