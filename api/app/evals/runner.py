@@ -26,6 +26,7 @@ from app.auth.provider import MockAuthProvider
 from app.auth.schemas import UsuarioAutenticado
 from app.evals.banco import PreguntaDorada, cargar_banco
 from app.ia.agente import responder
+from app.ia.experto import ConfigExperto
 from app.ia.proveedor import LLMProvider
 from app.motor.motor import ejecutar_consulta
 from app.motor.parquet_reader import ParquetReader
@@ -161,8 +162,14 @@ def evaluar_agente(
     max_iteraciones: int = 5,
     max_filas: int = 1000,
     reader: ParquetReader | None = None,
+    config: ConfigExperto | None = None,
 ) -> ReporteEval:
-    """Evalúa el nivel agente: cada fraseo NL por el agente M4 vs aserción/honestidad."""
+    """Evalúa el nivel agente: cada fraseo NL por el agente M4 vs aserción/honestidad.
+
+    ``config`` permite evaluar una configuración del Experto concreta (p. ej. un
+    borrador antes de activarlo). Si es None, el agente usa la config activa de la
+    torre del usuario.
+    """
     fallos: list[FalloEval] = []
     total = 0
     aprobadas = 0
@@ -179,6 +186,7 @@ def evaluar_agente(
                 max_iteraciones=max_iteraciones,
                 max_filas=max_filas,
                 reader=reader,
+                config=config,
             )
             if p.respondible:
                 obtenido = res.datos_tabulares.filas if res.datos_tabulares else None
@@ -213,6 +221,7 @@ def _preparar_db_real() -> Session:
     from app.db import SessionLocal
     from app.evals.dataset import construir_dataset
     from app.scripts.seed_dev import sembrar as sembrar_usuarios
+    from app.scripts.seed_experto import sembrar_experto
     from app.scripts.seed_plantillas import sembrar_plantillas
     from app.scripts.seed_vistas import sembrar_vistas
     from app.storage import get_almacen
@@ -221,6 +230,7 @@ def _preparar_db_real() -> Session:
     sembrar_usuarios(db)
     sembrar_plantillas(db)
     sembrar_vistas(db)
+    sembrar_experto(db)
     construir_dataset(db, get_almacen())
     return db
 

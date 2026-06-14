@@ -64,7 +64,8 @@ def db_session(engine: Any) -> Iterator[Any]:
                 text(
                     "TRUNCATE usuario, plantilla_reporte, carga_archivo, "
                     "vista_catalogo, bitacora_consulta, conversacion, mensaje, "
-                    "mensaje_consulta, dashboard, pregunta_catalogo CASCADE"
+                    "mensaje_consulta, dashboard, pregunta_catalogo, "
+                    "experto_torre, experto_fuente CASCADE"
                 )
             )
 
@@ -149,6 +150,19 @@ def seed_catalogo(db_session: Any) -> Any:
     from app.scripts.seed_catalogo import sembrar_catalogo
 
     sembrar_catalogo(db_session)
+    return db_session
+
+
+@pytest.fixture
+def seed_experto(db_session: Any) -> Any:
+    """Siembra plantillas, vistas y el experto OTC activo en la base del test."""
+    from app.scripts.seed_experto import sembrar_experto
+    from app.scripts.seed_plantillas import sembrar_plantillas
+    from app.scripts.seed_vistas import sembrar_vistas
+
+    sembrar_plantillas(db_session)
+    sembrar_vistas(db_session)
+    sembrar_experto(db_session)
     return db_session
 
 

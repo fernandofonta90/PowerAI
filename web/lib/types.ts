@@ -119,3 +119,51 @@ export type TorreCatalogo = {
   estado_torre: EstadoPregunta;
   categorias: CategoriaCatalogo[];
 };
+
+// --- Experto configurable por torre (M10) ---
+
+export type ConfigExperto = {
+  nombre: string;
+  identidad: string;
+  instrucciones_formato: string;
+  fuentes: string[];
+  estado: string;
+  version: number;
+};
+
+export type VistaExperto = {
+  nombre: string;
+  titulo: string;
+  descripcion: string;
+};
+
+export type ExpertoScreen = {
+  torre: string;
+  activo: ConfigExperto | null;
+  borrador: ConfigExperto | null;
+  vistas_torre: VistaExperto[];
+  garantias_estructurales: string[];
+};
+
+export type FalloEval = { id: string; fraseo: string; motivo: string };
+
+export type ReporteEval = {
+  total: number;
+  aprobadas: number;
+  tasa: number;
+  fallos: FalloEval[];
+};
+
+export type ActivacionExperto = {
+  activado: boolean;
+  motivo: string;
+  version: number | null;
+  reporte: ReporteEval | null;
+};
+
+export type ConfigExpertoInput = {
+  nombre: string;
+  identidad: string;
+  instrucciones_formato: string;
+  fuentes: string[];
+};

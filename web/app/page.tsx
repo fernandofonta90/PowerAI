@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ArrowUp } from "lucide-react";
+import { ArrowRight, ArrowUp, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -19,14 +19,18 @@ export default function HomePage() {
   const { email } = useUsuario();
   const [texto, setTexto] = useState("");
   const [ocupado, setOcupado] = useState(false);
-  const nombre = buscarUsuario(email)?.nombre ?? "";
+  const usuarioMock = buscarUsuario(email);
+  const nombre = usuarioMock?.nombre ?? "";
+  const adminTorre = usuarioMock?.adminTorre;
 
   async function iniciar(pregunta: string) {
     const p = pregunta.trim();
     if (!p || ocupado) return;
     setOcupado(true);
     try {
-      const conv = await api.post<Conversacion>("/conversaciones", { titulo: p.slice(0, 60) });
+      const conv = await api.post<Conversacion>("/conversaciones", {
+        titulo: p.slice(0, 60),
+      });
       router.push(`/chat/${conv.id}?q=${encodeURIComponent(p)}`);
     } catch {
       setOcupado(false);
@@ -70,13 +74,24 @@ export default function HomePage() {
             </button>
           </div>
           <SugeridasChips onElegir={iniciar} />
-          <Link
-            href="/preguntas"
-            className="mt-3 inline-flex items-center gap-1 text-[13px] text-brand-800 hover:underline"
-          >
-            Explorar todas las preguntas
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-          </Link>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link
+              href="/preguntas"
+              className="inline-flex items-center gap-1 text-[13px] text-brand-800 hover:underline"
+            >
+              Explorar todas las preguntas
+              <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+            </Link>
+            {adminTorre && (
+              <Link
+                href="/configuracion/experto"
+                className="inline-flex items-center gap-1 text-[13px] text-neutral-500 hover:text-brand-800"
+              >
+                <Settings2 className="h-3.5 w-3.5" aria-hidden />
+                Configurar experto {adminTorre}
+              </Link>
+            )}
+          </div>
         </div>
       </section>
 

@@ -5,6 +5,7 @@ from app.models.bitacora import BitacoraConsulta
 from app.models.carga import CargaArchivo
 from app.models.conversacion import Conversacion, Mensaje, mensaje_consulta
 from app.models.dashboard import Dashboard
+from app.models.experto import ExpertoFuente, ExpertoTorre
 from app.models.plantilla import PlantillaReporte
 from app.models.pregunta_catalogo import PreguntaCatalogo
 from app.models.usuario import AsignacionPermiso, Usuario
@@ -23,4 +24,6 @@ __all__ = [
     "mensaje_consulta",
     "Dashboard",
     "PreguntaCatalogo",
+    "ExpertoTorre",
+    "ExpertoFuente",
 ]
