@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowUp } from "lucide-react";
+import { ArrowRight, ArrowUp } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ContextGrid } from "@/components/ContextGrid";
@@ -69,6 +70,13 @@ export default function HomePage() {
             </button>
           </div>
           <SugeridasChips onElegir={iniciar} />
+          <Link
+            href="/preguntas"
+            className="mt-3 inline-flex items-center gap-1 text-[13px] text-brand-800 hover:underline"
+          >
+            Explorar todas las preguntas
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
         </div>
       </section>
 

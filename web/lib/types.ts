@@ -95,3 +95,27 @@ export type GenerarDashboardResponse = {
   spec: Record<string, unknown> | null;
   mensaje: string;
 };
+
+// --- Catálogo de preguntas (M9) ---
+
+export type EstadoPregunta = "activa" | "proximamente";
+
+export type PreguntaCatalogo = {
+  id: string;
+  texto: string;
+  estado: EstadoPregunta;
+  // true solo si está activa Y el usuario tiene acceso a la torre (RBAC).
+  ejecutable: boolean;
+};
+
+export type CategoriaCatalogo = {
+  nombre: string;
+  preguntas: PreguntaCatalogo[];
+};
+
+export type TorreCatalogo = {
+  torre: string;
+  nombre: string;
+  estado_torre: EstadoPregunta;
+  categorias: CategoriaCatalogo[];
+};
