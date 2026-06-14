@@ -42,10 +42,32 @@ describe("CatalogoExplorador", () => {
     get.mockResolvedValue(CATALOGO);
   });
 
-  it("muestra todas las torres (el piloto se ve completo)", async () => {
+  it("con búsqueda vacía muestra TODAS las torres y preguntas (estado por defecto)", async () => {
     render(<CatalogoExplorador onElegir={() => {}} />);
+    // Las dos torres del fixture, con sus preguntas activas y proximamente.
     expect(await screen.findByText("OTC — Order to Cash")).toBeInTheDocument();
     expect(screen.getByText("PTP — Procure to Pay")).toBeInTheDocument();
+    expect(screen.getByText("¿Antigüedad de la cartera?")).toBeInTheDocument();
+    expect(screen.getByText("¿Concilian AR y GL?")).toBeInTheDocument();
+    expect(screen.getByText("¿Top 10 proveedores?")).toBeInTheDocument();
+    // Nunca el mensaje de "sin coincidencias" con el campo vacío.
+    expect(screen.queryByText(/No hay preguntas que coincidan/)).not.toBeInTheDocument();
+  });
+
+  it("las categorías colapsables se ven desde el inicio con su conteo", async () => {
+    render(<CatalogoExplorador onElegir={() => {}} />);
+    // La categoría y su conteo aparecen sin necesidad de buscar primero.
+    expect(await screen.findByText("Cartera y cobranza")).toBeInTheDocument();
+    expect(screen.getByText("1 de 2 disponibles")).toBeInTheDocument();
+  });
+
+  it("con texto SIN coincidencias muestra el mensaje vacío", async () => {
+    render(<CatalogoExplorador onElegir={() => {}} />);
+    await screen.findByText("¿Antigüedad de la cartera?");
+    fireEvent.change(screen.getByLabelText("Buscar una pregunta"), {
+      target: { value: "xyz no existe" },
+    });
+    expect(await screen.findByText(/No hay preguntas que coincidan/)).toBeInTheDocument();
   });
 
   it("una pregunta activa es clicable y envía al chat", async () => {
