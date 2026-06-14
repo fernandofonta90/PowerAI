@@ -77,7 +77,14 @@ export function VisualRenderer({ visual }: { visual: VisualRenderizado }) {
             <XAxis dataKey="x" tick={{ fontSize: 11, fill: "#6B6B80" }} />
             <YAxis tick={{ fontSize: 11, fill: "#6B6B80" }} />
             <Tooltip formatter={(_v, _n, p) => (p?.payload?.raw ?? "") as string} />
-            <Line type="monotone" dataKey="y" stroke={BRAND} strokeWidth={2} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="y"
+              stroke={BRAND}
+              strokeWidth={2}
+              dot={false}
+              isAnimationActive={false}
+            />
           </LineChart>
         ) : (
           <BarChart data={datos} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
@@ -85,7 +92,7 @@ export function VisualRenderer({ visual }: { visual: VisualRenderizado }) {
             <XAxis dataKey="x" tick={{ fontSize: 11, fill: "#6B6B80" }} />
             <YAxis tick={{ fontSize: 11, fill: "#6B6B80" }} />
             <Tooltip formatter={(_v, _n, p) => (p?.payload?.raw ?? "") as string} />
-            <Bar dataKey="y" fill={BRAND} radius={[4, 4, 0, 0]} />
+            <Bar dataKey="y" fill={BRAND} radius={[4, 4, 0, 0]} isAnimationActive={false} />
           </BarChart>
         )}
       </ResponsiveContainer>
