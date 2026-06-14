@@ -36,10 +36,11 @@ PowerAI es una plataforma interna donde cada torre del Shared Service Center (OT
 
 - **Versión de la documentación:** 0.1 (borrador para revisión)
 - **Fase 1 (MVP):** Torre OTC, 8–10 semanas
-- **Milestones (Fase 1 — backend completo):** M1 — Fundación ✅ · M2 — Plantillas
-  y carga ✅ · M3 — Catálogo semántico y motor de consulta ✅ · M4 — Chat analítico
-  ✅ · M5 — Calidad (banco de preguntas doradas con eval determinística en CI) ✅
-- Banco de preguntas doradas: [evals/](evals/)
+- **Milestones:** M1 — Fundación ✅ · M2 — Plantillas y carga ✅ · M3 — Catálogo
+  semántico y motor de consulta ✅ · M4 — Chat analítico ✅ · M5 — Calidad (banco
+  de preguntas doradas) ✅ · M6 — Frontend del chat (home + conversación, design
+  system v2, citación de fuentes, RBAC en vivo) ✅
+- Banco de preguntas doradas: [evals/](evals/) · **Guía de demo:** [docs/demo.md](docs/demo.md)
 
 ## Desarrollo local
 
