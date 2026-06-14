@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
@@ -8,15 +9,46 @@ import { SourcesRail } from "@/components/chat/SourcesRail";
 import { Sparkle } from "@/components/Sparkle";
 import { useUsuario } from "@/context/UsuarioContext";
 import { ApiError, api } from "@/lib/api";
-import type { ConversacionDetalle, RespuestaChat } from "@/lib/types";
+import type {
+  ConversacionDetalle,
+  DashboardMeta,
+  GenerarDashboardResponse,
+  RespuestaChat,
+} from "@/lib/types";
 
 export default function ChatPage({ params }: { params: { id: string } }) {
   const { id } = params;
+  const router = useRouter();
   const { email } = useUsuario();
   const [items, setItems] = useState<ItemMensaje[]>([]);
   const [ocupado, setOcupado] = useState(false);
+  const [generando, setGenerando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const autoEnviado = useRef(false);
+
+  async function generarDashboard(pregunta: string) {
+    setError(null);
+    setGenerando(true);
+    try {
+      const r = await api.post<GenerarDashboardResponse>("/dashboards/generar", {
+        peticion: pregunta,
+      });
+      if (!r.spec) {
+        setError(r.mensaje); // honesto: no se puede generar con las vistas disponibles
+        return;
+      }
+      const d = await api.post<DashboardMeta>("/dashboards", {
+        nombre: pregunta.slice(0, 60),
+        torre: "OTC",
+        spec: r.spec,
+      });
+      router.push(`/dashboards/${d.id}`);
+    } catch {
+      setError("No se pudo generar el dashboard.");
+    } finally {
+      setGenerando(false);
+    }
+  }
 
   async function enviar(pregunta: string) {
     setError(null);
@@ -74,7 +106,16 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           <div className="mx-auto flex max-w-3xl flex-col gap-6">
             {error && <p className="text-[13px] text-danger-700">{error}</p>}
             {items.map((it, i) => (
-              <MessageBubble key={i} item={it} />
+              <MessageBubble
+                key={i}
+                item={it}
+                generando={generando}
+                onGenerarDashboard={
+                  it.rol === "assistant" && it.datos && items[i - 1]?.rol === "user"
+                    ? () => generarDashboard(items[i - 1].contenido)
+                    : undefined
+                }
+              />
             ))}
             {ocupado && (
               <div className="flex items-center gap-3 text-neutral-500" aria-live="polite">

@@ -1,18 +1,20 @@
 "use client";
 
 import { Bell, Upload } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BadgeFrescura } from "@/components/BadgeFrescura";
 import { Sparkle } from "@/components/Sparkle";
 import { useUsuario } from "@/context/UsuarioContext";
 import { api } from "@/lib/api";
-import type { Frescura } from "@/lib/types";
+import type { DashboardMeta, Frescura } from "@/lib/types";
 import { buscarUsuario } from "@/lib/usuarios";
 
 // Grid de 3 tarjetas del home (existe desde Fase 1 aunque dos estén vacías).
 export function ContextGrid() {
   const { email } = useUsuario();
   const [fuentes, setFuentes] = useState<Frescura[]>([]);
+  const [dashboards, setDashboards] = useState<DashboardMeta[]>([]);
   const puedeCargar = buscarUsuario(email)?.puedeCargar ?? false;
 
   useEffect(() => {
@@ -21,6 +23,10 @@ export function ContextGrid() {
       .get<Frescura[]>("/catalogo/frescura?torre=OTC")
       .then((f) => activo && setFuentes(f))
       .catch(() => activo && setFuentes([]));
+    api
+      .get<DashboardMeta[]>("/dashboards")
+      .then((d) => activo && setDashboards(d))
+      .catch(() => activo && setDashboards([]));
     return () => {
       activo = false;
     };
@@ -62,7 +68,22 @@ export function ContextGrid() {
         titulo="Mis dashboards"
         etiqueta={<Sparkle className="h-3.5 w-3.5 text-brand-600" title="Generado por IA" />}
       >
-        <Vacio texto="Disponible próximamente." />
+        {dashboards.length === 0 ? (
+          <Vacio texto="Aún no tienes dashboards. Genera uno desde el chat." />
+        ) : (
+          <ul className="space-y-2">
+            {dashboards.map((d) => (
+              <li key={d.id} className="flex items-center gap-2 text-[12px]">
+                <span className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-brand-100 text-brand-800">
+                  <Sparkle className="h-3 w-3" />
+                </span>
+                <Link href={`/dashboards/${d.id}`} className="truncate text-brand-800 hover:underline">
+                  {d.nombre}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </Tarjeta>
 
       <Tarjeta titulo="Alertas recientes" etiqueta={<Bell className="h-3.5 w-3.5 text-neutral-400" />}>

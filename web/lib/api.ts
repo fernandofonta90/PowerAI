@@ -44,4 +44,7 @@ export const api = {
   get: <T>(ruta: string) => request<T>(ruta),
   post: <T>(ruta: string, cuerpo?: unknown) =>
     request<T>(ruta, { method: "POST", body: JSON.stringify(cuerpo ?? {}) }),
+  patch: <T>(ruta: string, cuerpo?: unknown) =>
+    request<T>(ruta, { method: "PATCH", body: JSON.stringify(cuerpo ?? {}) }),
+  del: <T>(ruta: string) => request<T>(ruta, { method: "DELETE" }),
 };
