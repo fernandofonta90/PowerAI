@@ -17,9 +17,9 @@ export function BadgeFrescura({ estado }: { estado: EstadoFrescura }) {
   const { clase, Icono } = ESTILO[estado];
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-pill px-2 py-0.5 text-[11px] font-medium ${clase}`}
+      className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-pill px-2 py-0.5 text-[11px] font-medium ${clase}`}
     >
-      <Icono className="h-3 w-3" aria-hidden />
+      <Icono className="h-3 w-3 shrink-0" aria-hidden />
       {ETIQUETA_FRESCURA[estado]}
     </span>
   );

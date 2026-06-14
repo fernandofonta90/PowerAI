@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Upload } from "lucide-react";
+import { Bell, Inbox, Upload } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { BadgeFrescura } from "@/components/BadgeFrescura";
@@ -33,7 +33,7 @@ export function ContextGrid() {
   }, [email]);
 
   return (
-    <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-3">
+    <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-3">
       <Tarjeta
         titulo="Fuentes de mi torre"
         accion={
@@ -53,7 +53,7 @@ export function ContextGrid() {
         ) : (
           <ul className="space-y-2">
             {fuentes.map((f, i) => (
-              <li key={i} className="flex items-center justify-between gap-2 text-[12px]">
+              <li key={i} className="flex items-center justify-between gap-2 text-[12.5px]">
                 <span className="truncate text-neutral-700">
                   {f.plantilla_nombre} · {f.pais}
                 </span>
@@ -73,7 +73,7 @@ export function ContextGrid() {
         ) : (
           <ul className="space-y-2">
             {dashboards.map((d) => (
-              <li key={d.id} className="flex items-center gap-2 text-[12px]">
+              <li key={d.id} className="flex items-center gap-2 text-[12.5px]">
                 <span className="flex h-6 w-6 items-center justify-center rounded-[6px] bg-brand-100 text-brand-800">
                   <Sparkle className="h-3 w-3" />
                 </span>
@@ -105,7 +105,7 @@ function Tarjeta({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-100 bg-white p-4">
+    <div className="rounded-xl border border-neutral-100 bg-white p-[15px]">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-[13px] font-medium text-neutral-700">
           {titulo}
@@ -119,5 +119,10 @@ function Tarjeta({
 }
 
 function Vacio({ texto }: { texto: string }) {
-  return <p className="text-[12px] text-neutral-400">{texto}</p>;
+  return (
+    <div className="flex flex-col items-center gap-1.5 py-4 text-center">
+      <Inbox className="h-5 w-5 text-neutral-200" aria-hidden />
+      <p className="text-[12.5px] text-neutral-400">{texto}</p>
+    </div>
+  );
 }

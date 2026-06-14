@@ -30,13 +30,13 @@ export function SugeridasChips({
   if (chips.length === 0) return null;
 
   return (
-    <div className="mt-4 flex flex-wrap justify-center gap-2">
+    <div className="mt-4 flex flex-col gap-2 text-left">
       {chips.map((p) => (
         <button
           key={p}
           type="button"
           onClick={() => onElegir(p)}
-          className="rounded-pill border border-brand-200 bg-brand-50 px-3 py-1.5 text-[11px] text-brand-800 hover:bg-brand-100"
+          className="w-full rounded-lg border border-brand-100 bg-brand-50 px-3.5 py-2.5 text-left text-[13.5px] text-brand-800 transition-colors hover:bg-brand-100"
         >
           {p}
         </button>
