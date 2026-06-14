@@ -9,7 +9,7 @@ mensaje puede ejecutar N consultas). La bitácora de M3 NO se modifica: se refer
 import uuid
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Column, ForeignKey, String, Table, Text
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -66,6 +66,9 @@ class Mensaje(Base, TimestampMixin):
     contenido: Mapped[str] = mapped_column(Text, nullable=False)
     # Citación estructurada de la respuesta del asistente (fuentes, sql ids, vistas).
     citacion_json: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    # Consumo de tokens del mensaje del asistente (insumo del control de costos).
+    tokens_entrada: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    tokens_salida: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     conversacion: Mapped[Conversacion] = relationship(back_populates="mensajes")
     consultas: Mapped[list["BitacoraConsulta"]] = relationship(

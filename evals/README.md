@@ -45,16 +45,23 @@ completo; su resultado se compara contra la misma aserción (y, para las pregunt
 no respondibles, se exige honestidad: sin fuentes ni datos inventados). Por debajo
 del 95% el runner sale con código de error y reporta qué preguntas fallaron.
 
-Paso **manual pre-release** (requiere Azure OpenAI configurado y el entorno dev
-levantado con migraciones y seed aplicados):
+Paso **manual pre-release** (requiere Azure OpenAI configurado en `api/.env` y el
+entorno dev levantado con migraciones y seed aplicados):
 
 ```bash
 cd api
-export POWERAI_LLM_PROVIDER=azure_openai
-export POWERAI_AZURE_OPENAI_ENDPOINT=... POWERAI_AZURE_OPENAI_API_KEY=... \
-       POWERAI_AZURE_OPENAI_DEPLOYMENT=...
+# 1) Configura en api/.env: POWERAI_LLM_PROVIDER=azure_openai y las POWERAI_AZURE_OPENAI_*
+# 2) Diagnóstico de conexión (falla con mensaje claro si falta algo):
+uv run python -m app.scripts.check_llm
+# 3) Eval del agente real contra el banco completo:
 uv run python -m app.evals.runner --nivel agente
 ```
+
+El reporte muestra la tasa de acierto sobre las 26 respondibles, el comportamiento
+en las 3 no respondibles (debe mantener la honestidad) y, por cada fallo, el **SQL
+generado** por el agente frente al **SQL esperado** — para diagnosticar si el ajuste
+debe ir al prompt del agente o a las descripciones de las vistas del catálogo (el
+motor y la RLS no se tocan). Sale con código ≠ 0 si la tasa < 95%.
 
 (El runner también acepta `--nivel motor` para correrlo contra una BD real.)
 

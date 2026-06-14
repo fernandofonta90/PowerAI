@@ -18,6 +18,7 @@ import sys
 from typing import Any
 
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.provider import MockAuthProvider
@@ -37,6 +38,8 @@ class FalloEval(BaseModel):
     motivo: str
     esperado: Any = None
     obtenido: Any = None
+    sql_generado: list[str] | None = None
+    sql_esperado: str | None = None
 
 
 class ReporteEval(BaseModel):
@@ -55,11 +58,27 @@ class ReporteEval(BaseModel):
             lineas.append(f"  ✗ [{f.id}] «{f.fraseo}»: {f.motivo}")
             if f.esperado is not None:
                 lineas.append(f"      esperado={f.esperado} obtenido={f.obtenido}")
+            if f.sql_esperado is not None:
+                lineas.append(f"      SQL esperado: {f.sql_esperado}")
+            if f.sql_generado is not None:
+                lineas.append(f"      SQL generado: {f.sql_generado}")
         return "\n".join(lineas)
 
 
 def _usuario(db: Session, email: str) -> UsuarioAutenticado:
     return MockAuthProvider().autenticar(db, email)
+
+
+def _sql_de_bitacora(db: Session, ids: list[Any]) -> list[str]:
+    """SQL realmente ejecutado por el agente (para comparar contra el esperado)."""
+    from app.models.bitacora import BitacoraConsulta
+
+    if not ids:
+        return []
+    return [
+        b.sql_ejecutado
+        for b in db.scalars(select(BitacoraConsulta).where(BitacoraConsulta.id.in_(ids)))
+    ]
 
 
 def evaluar_motor(
@@ -134,6 +153,8 @@ def evaluar_agente(
                             motivo="datos no coinciden",
                             esperado=esperado,
                             obtenido=obtenido,
+                            sql_generado=_sql_de_bitacora(db, res.citacion.sql_ejecutado_ids),
+                            sql_esperado=p.sql_canonico,
                         )
                     )
             else:
