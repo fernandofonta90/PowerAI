@@ -182,8 +182,15 @@ def ejecutar_consulta(
     sql: str,
     *,
     reader: ParquetReader | None = None,
+    vistas_permitidas: frozenset[str] | None = None,
 ) -> ResultadoConsulta:
-    """Ejecuta ``sql`` contra las vistas pre-filtradas del usuario y audita."""
+    """Ejecuta ``sql`` contra las vistas pre-filtradas del usuario y audita.
+
+    ``vistas_permitidas`` es una capa EXTRA sobre el RLS (no lo reemplaza): si se
+    indica, solo se materializan esas vistas curadas, de modo que el SQL no puede
+    siquiera nombrar una vista fuera del alcance del Experto. El RLS por fila
+    (torre × país) se aplica igual sobre las fuentes subyacentes.
+    """
     reader = reader or get_parquet_reader()
     con = duckdb.connect()
     # Versiones cargadas por plantilla; la citación reporta solo las referenciadas.
@@ -219,8 +226,10 @@ def ejecutar_consulta(
             else:
                 con.execute(f'CREATE TEMP TABLE "{plantilla.codigo}" ({_cols_ddl(plantilla)})')
 
-        # 2. Vistas curadas sobre las fuentes.
+        # 2. Vistas curadas sobre las fuentes (acotadas por el Experto si aplica).
         vistas = _vistas_en_alcance(db, usuario)
+        if vistas_permitidas is not None:
+            vistas = [v for v in vistas if v.nombre in vistas_permitidas]
         vista_a_plantilla = {v.nombre: v.plantilla.codigo for v in vistas}
         for v in vistas:
             _validar_ident(v.nombre)

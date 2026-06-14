@@ -95,6 +95,19 @@ class EstadoCarga(StrEnum):
     FALLIDA = "fallida"
 
 
+class EstadoExperto(StrEnum):
+    """Ciclo de vida de una configuración del Experto de una torre (M10).
+
+    - BORRADOR: configuración editable que aún no pasó la validación por evals.
+    - ACTIVO: configuración vigente que el agente usa (pasó el umbral de evals).
+    - ARCHIVADO: configuración que fue activa y quedó reemplazada (rollback posible).
+    """
+
+    BORRADOR = "borrador"
+    ACTIVO = "activo"
+    ARCHIVADO = "archivado"
+
+
 class EstadoFrescura(StrEnum):
     """Estado de frescura de un dataset (badge verde/ámbar/rojo del design system)."""
 

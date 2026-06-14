@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.schemas import UsuarioAutenticado
 from app.domain.enums import EstadoFrescura
+from app.ia.experto import ConfigExperto, cargar_config_activa, construir_system_prompt
 from app.ia.proveedor import (
     LLMProvider,
     MensajeChat,
@@ -32,31 +33,6 @@ from app.models.vista import VistaCatalogo
 from app.motor.motor import ConsultaInvalida, VersionDato, ejecutar_consulta
 from app.motor.parquet_reader import ParquetReader
 from app.services.frescura import estado_frescura
-
-_SISTEMA = (
-    "Eres el asistente analítico de PowerAI para el SSC Finanzas LATAM. "
-    "Respondes preguntas de negocio consultando ÚNICAMENTE las vistas del catálogo "
-    "a las que el usuario tiene acceso. Usa la herramienta listar_vistas para "
-    "descubrir qué vistas y columnas existen, y ejecutar_sql (solo SELECT de DuckDB) "
-    "para obtener los datos. No inventes cifras: si la pregunta no puede responderse "
-    "con las vistas disponibles, dilo con claridad. Cita siempre tus fuentes a partir "
-    "de los datos consultados. Responde en español, de forma concisa y para negocio.\n"
-    "HONESTIDAD ANTE MÉTRICAS NO SOPORTADAS: si la métrica o el dato pedido NO mapea "
-    "a una columna existente de las vistas del catálogo, es una pregunta NO "
-    "respondible: declara explícitamente que no puedes responderla con las vistas "
-    "disponibles y NO ejecutes SQL. En particular, el catálogo no tiene datos de "
-    "costo, por lo que NO puedes calcular rentabilidad, margen ni utilidad. NUNCA "
-    "sustituyas la métrica pedida por otra (p. ej. no uses el saldo o la cartera como "
-    "aproximación de rentabilidad): aproximar es inventar.\n"
-    "Reglas para el SQL que generes:\n"
-    "- Selecciona SOLO las columnas que la pregunta pide; no agregues columnas de "
-    "contexto (moneda, descripción, fechas) salvo que se pidan explícitamente.\n"
-    "- Si la pregunta pide un único valor agregado (un total, una suma, un conteo), "
-    "devuelve UNA sola columna con ese valor, sin agrupar por otras columnas.\n"
-    "- Para la antigüedad de la cartera (aging) usa exactamente estos tramos por "
-    "días vencidos: 'corriente' (=0), '1-30' (1 a 30), '31-60' (31 a 60) y '60+' "
-    "(más de 60), una fila por tramo con la suma de monto."
-)
 
 _TOOLS: list[ToolSpec] = [
     ToolSpec(
@@ -127,7 +103,9 @@ class _Acumulador:
     tokens_salida: int = 0
 
 
-def _vistas_json(db: Session, usuario: UsuarioAutenticado) -> str:
+def _vistas_json(
+    db: Session, usuario: UsuarioAutenticado, fuentes_permitidas: frozenset[str] | None
+) -> str:
     torres = usuario.torres_accesibles()
     vistas = db.scalars(
         select(VistaCatalogo).where(VistaCatalogo.torre.in_(torres)).order_by(VistaCatalogo.nombre)
@@ -141,6 +119,9 @@ def _vistas_json(db: Session, usuario: UsuarioAutenticado) -> str:
         }
         for v in vistas
         if v.torre in torres
+        # Las fuentes permitidas del experto acotan qué vistas ve el agente (capa
+        # extra sobre el RLS): si está acotado, solo se listan las permitidas.
+        and (fuentes_permitidas is None or v.nombre in fuentes_permitidas)
     ]
     return json.dumps({"vistas": payload}, ensure_ascii=False)
 
@@ -152,6 +133,7 @@ def _ejecutar_sql_tool(
     max_filas: int,
     acum: _Acumulador,
     reader: ParquetReader | None,
+    fuentes_permitidas: frozenset[str] | None,
 ) -> str:
     try:
         validar_select(sql)
@@ -159,7 +141,9 @@ def _ejecutar_sql_tool(
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
     try:
-        resultado = ejecutar_consulta(db, usuario, sql, reader=reader)
+        resultado = ejecutar_consulta(
+            db, usuario, sql, reader=reader, vistas_permitidas=fuentes_permitidas
+        )
     except ConsultaInvalida as exc:
         return json.dumps({"error": str(exc)}, ensure_ascii=False)
 
@@ -236,10 +220,21 @@ def responder(
     max_iteraciones: int = 5,
     max_filas: int = 1000,
     reader: ParquetReader | None = None,
+    config: ConfigExperto | None = None,
 ) -> ResultadoAgente:
-    """Ejecuta el loop del agente y devuelve la respuesta con su citación."""
+    """Ejecuta el loop del agente y devuelve la respuesta con su citación.
+
+    El comportamiento (identidad, formato, fuentes) viene de la config del Experto
+    de la torre: si no se pasa explícita (p. ej. para validar un borrador), se carga
+    la ACTIVA de la torre del usuario. El núcleo estructural (honestidad, gobierno
+    del SQL, RLS) es fijo y se inyecta siempre, sin importar la config.
+    """
+    if config is None:
+        config = cargar_config_activa(db, usuario)
+    fuentes = config.fuentes_permitidas
+
     mensajes: list[MensajeChat] = [
-        MensajeChat(rol="system", contenido=_SISTEMA),
+        MensajeChat(rol="system", contenido=construir_system_prompt(config)),
         *historial,
         MensajeChat(rol="user", contenido=pregunta),
     ]
@@ -268,10 +263,10 @@ def responder(
         )
         for tc in resp.tool_calls:
             if tc.nombre == "listar_vistas":
-                salida = _vistas_json(db, usuario)
+                salida = _vistas_json(db, usuario, fuentes)
             elif tc.nombre == "ejecutar_sql":
                 salida = _ejecutar_sql_tool(
-                    db, usuario, str(tc.argumentos.get("sql", "")), max_filas, acum, reader
+                    db, usuario, str(tc.argumentos.get("sql", "")), max_filas, acum, reader, fuentes
                 )
             else:
                 salida = json.dumps({"error": f"Herramienta desconocida: {tc.nombre}"})
