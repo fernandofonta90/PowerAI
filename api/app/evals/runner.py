@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections import Counter
 from typing import Any
 
 from pydantic import BaseModel
@@ -63,6 +64,45 @@ class ReporteEval(BaseModel):
             if f.sql_generado is not None:
                 lineas.append(f"      SQL generado: {f.sql_generado}")
         return "\n".join(lineas)
+
+
+def _multiset(fila: list[Any]) -> Counter[str]:
+    return Counter(str(v) for v in fila)
+
+
+def coincide_semantico(esperado: list[list[Any]], obtenido: list[list[Any]] | None) -> bool:
+    """Correctitud semántica del resultado del agente (nivel agente).
+
+    Corrige la rigidez cosmética del NL→SQL SIN perder poder de detección:
+
+    - Order-insensitive entre filas y dentro de cada fila.
+    - Cada valor esperado debe estar presente y ser EXACTO (1750.00 ≠ 1750.01).
+    - Se toleran columnas de contexto extra (moneda, descripción) por fila.
+    - El número de filas debe coincidir: una fila de más (p. ej. un cliente que no
+      corresponde o una fuga de RBAC) o una fila faltante REPRUEBAN.
+
+    No afloja hasta "pasar": mide correctitud, no se rinde a ella.
+    """
+    if obtenido is None:
+        return False
+    if len(esperado) != len(obtenido):
+        return False
+    disponibles = [_multiset(o) for o in obtenido]
+    usados = [False] * len(disponibles)
+    for fila_esp in esperado:
+        req = _multiset(fila_esp)
+        idx = next(
+            (
+                j
+                for j, o in enumerate(disponibles)
+                if not usados[j] and all(o[k] >= n for k, n in req.items())
+            ),
+            None,
+        )
+        if idx is None:
+            return False
+        usados[idx] = True
+    return True
 
 
 def _usuario(db: Session, email: str) -> UsuarioAutenticado:
@@ -142,8 +182,8 @@ def evaluar_agente(
             )
             if p.respondible:
                 obtenido = res.datos_tabulares.filas if res.datos_tabulares else None
-                esperado = p.asercion.filas if p.asercion else None
-                if obtenido == esperado:
+                esperado = p.asercion.filas if p.asercion else []
+                if coincide_semantico(esperado, obtenido):
                     aprobadas += 1
                 else:
                     fallos.append(
