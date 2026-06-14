@@ -8,6 +8,7 @@ from app.config import get_settings
 from app.routers import (
     auth,
     cargas,
+    catalogo,
     chat,
     consulta,
     dashboards,
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(consulta.router)
     app.include_router(chat.router)
     app.include_router(torres.router)
+    app.include_router(catalogo.router)
     app.include_router(dashboards.router)
     return app
 
