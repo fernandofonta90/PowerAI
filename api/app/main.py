@@ -12,6 +12,7 @@ from app.routers import (
     chat,
     consulta,
     dashboards,
+    expertos,
     health,
     plantillas,
     torres,
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     app.include_router(torres.router)
     app.include_router(catalogo.router)
     app.include_router(dashboards.router)
+    app.include_router(expertos.router)
     return app
 
 
