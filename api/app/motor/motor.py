@@ -186,7 +186,8 @@ def ejecutar_consulta(
     """Ejecuta ``sql`` contra las vistas pre-filtradas del usuario y audita."""
     reader = reader or get_parquet_reader()
     con = duckdb.connect()
-    versiones: list[VersionDato] = []
+    # Versiones cargadas por plantilla; la citación reporta solo las referenciadas.
+    versiones_por_plantilla: dict[str, list[VersionDato]] = {}
     try:
         reader.preparar(con)
 
@@ -206,7 +207,7 @@ def ejecutar_consulta(
                     f'CREATE TEMP TABLE "{plantilla.codigo}" AS '
                     f"SELECT * FROM read_parquet([{', '.join(uris)}])"
                 )
-                versiones += [
+                versiones_por_plantilla[plantilla.codigo] = [
                     VersionDato(
                         plantilla=plantilla.codigo,
                         pais=c.pais,
@@ -220,6 +221,7 @@ def ejecutar_consulta(
 
         # 2. Vistas curadas sobre las fuentes.
         vistas = _vistas_en_alcance(db, usuario)
+        vista_a_plantilla = {v.nombre: v.plantilla.codigo for v in vistas}
         for v in vistas:
             _validar_ident(v.nombre)
             con.execute(f'CREATE TEMP VIEW "{v.nombre}" AS {v.sql}')
@@ -228,6 +230,18 @@ def ejecutar_consulta(
         con.execute("SET enable_external_access=false")
 
         vistas_usadas = _vistas_referenciadas(sql, vistas)
+
+        # Solo se citan las fuentes realmente referenciadas (por vista o por fuente).
+        sql_low = sql.lower()
+        referenciadas: set[str] = {
+            vista_a_plantilla[v] for v in vistas_usadas if v in vista_a_plantilla
+        }
+        for codigo in versiones_por_plantilla:
+            if re.search(rf"\b{codigo}\b", sql_low):
+                referenciadas.add(codigo)
+        versiones = [
+            vd for codigo in referenciadas for vd in versiones_por_plantilla.get(codigo, [])
+        ]
 
         # 4. Ejecutar el SQL del usuario.
         try:

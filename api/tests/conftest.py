@@ -70,6 +70,15 @@ def db_session(engine: Any) -> Iterator[Any]:
 
 
 @pytest.fixture(autouse=True)
+def _reset_llm() -> Iterator[None]:
+    """Limpia el proveedor LLM global entre tests para evitar fugas de estado."""
+    yield
+    from app.ia.proveedor import set_llm_provider
+
+    set_llm_provider(None)
+
+
+@pytest.fixture(autouse=True)
 def almacen_memoria() -> Iterator[Any]:
     """Inyecta un almacén en memoria global; ningún test toca Azure Blob."""
     from app.storage import set_almacen

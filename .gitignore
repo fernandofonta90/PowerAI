@@ -18,6 +18,11 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Playwright
+playwright-report/
+test-results/
+/web/playwright/.cache/
+
 # IDE
 .vscode/settings.json
 .idea/

@@ -56,6 +56,13 @@ class Settings(BaseSettings):
     agente_max_iteraciones: int = 5
     agente_max_filas: int = 1000
 
+    # Orígenes permitidos para CORS (separados por coma). En dev, el frontend Next.
+    cors_origins: str = "http://localhost:3000"
+
+    @property
+    def lista_cors_origins(self) -> list[str]:
+        return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
     @property
     def es_produccion(self) -> bool:
         return self.entorno == "prod"

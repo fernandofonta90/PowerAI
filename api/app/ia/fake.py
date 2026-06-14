@@ -1,15 +1,24 @@
-"""Proveedor LLM falso y determinístico, para desarrollo y tests.
+"""Proveedor LLM falso y determinístico, para desarrollo, demo y tests.
 
-En tests se construye con un "guion": una secuencia de :class:`RespuestaLLM` que
-el agente irá consumiendo (tool-calls y respuesta final guionizados). Sin guion,
-devuelve una respuesta canónica sin tool-calls (útil en dev sin Azure OpenAI).
+Dos modos:
+- Con ``guion`` (tests): devuelve en orden la secuencia de :class:`RespuestaLLM`
+  (tool-calls y respuesta final guionizados).
+- Sin guion (dev/demo/E2E): ejercita el flujo completo de forma determinística —
+  ejecuta una consulta representativa sobre el catálogo y luego redacta una
+  respuesta. Así el producto se ve y se prueba sin Azure OpenAI.
 """
 
-from app.ia.proveedor import LLMProvider, MensajeChat, RespuestaLLM, ToolSpec
+from app.ia.proveedor import LlamadaTool, LLMProvider, MensajeChat, RespuestaLLM, ToolSpec
+
+# Consulta representativa para la demo: saldo por cliente de la cartera abierta.
+# Si el usuario no tiene datos visibles (RLS), devuelve vacío (respuesta honesta).
+_SQL_DEMO = (
+    "SELECT cliente, sum(monto) AS saldo FROM ar_abiertas GROUP BY cliente ORDER BY saldo DESC"
+)
 
 
 class FakeProvider(LLMProvider):
-    """Devuelve respuestas guionizadas en orden; registra los hilos recibidos."""
+    """Devuelve respuestas guionizadas o, sin guion, un flujo demo determinístico."""
 
     def __init__(self, guion: list[RespuestaLLM] | None = None) -> None:
         self._guion = list(guion) if guion is not None else None
@@ -18,15 +27,28 @@ class FakeProvider(LLMProvider):
 
     def completar(self, mensajes: list[MensajeChat], tools: list[ToolSpec]) -> RespuestaLLM:
         self.hilos.append(list(mensajes))
-        if self._guion is None:
+        if self._guion is not None:
+            if self._i >= len(self._guion):
+                return RespuestaLLM(contenido="(fin del guion de prueba)")
+            respuesta = self._guion[self._i]
+            self._i += 1
+            return respuesta
+        return self._demo(mensajes, tools)
+
+    def _demo(self, mensajes: list[MensajeChat], tools: list[ToolSpec]) -> RespuestaLLM:
+        # Si ya hay un resultado de herramienta en el hilo, redacta la respuesta final.
+        if any(m.rol == "tool" for m in mensajes):
             return RespuestaLLM(
                 contenido=(
-                    "Proveedor de IA en modo de prueba: configura POWERAI_LLM_PROVIDER"
-                    "=azure_openai para respuestas reales."
+                    "Según las vistas disponibles para tu alcance, este es el saldo de "
+                    "cartera abierta por cliente. Revisa el detalle y las fuentes citadas."
                 )
             )
-        if self._i >= len(self._guion):
-            return RespuestaLLM(contenido="(fin del guion de prueba)")
-        respuesta = self._guion[self._i]
-        self._i += 1
-        return respuesta
+        # Primer turno: ejecuta la consulta de demostración si la tool existe.
+        if any(t.nombre == "ejecutar_sql" for t in tools):
+            return RespuestaLLM(
+                tool_calls=[
+                    LlamadaTool(id="demo", nombre="ejecutar_sql", argumentos={"sql": _SQL_DEMO})
+                ]
+            )
+        return RespuestaLLM(contenido="No hay herramientas disponibles en este entorno.")
