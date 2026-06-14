@@ -39,7 +39,8 @@ PowerAI es una plataforma interna donde cada torre del Shared Service Center (OT
 - **Milestones:** M1 — Fundación ✅ · M2 — Plantillas y carga ✅ · M3 — Catálogo
   semántico y motor de consulta ✅ · M4 — Chat analítico ✅ · M5 — Calidad (banco
   de preguntas doradas) ✅ · M6 — Frontend del chat (home + conversación, design
-  system v2, citación de fuentes, RBAC en vivo) ✅
+  system v2, citación de fuentes, RBAC en vivo) ✅ · M7 — Validación del agente
+  real (Azure OpenAI: diagnóstico, reintentos, registro de tokens, eval ≥95%) ✅
 - Banco de preguntas doradas: [evals/](evals/) · **Guía de demo:** [docs/demo.md](docs/demo.md)
 
 ## Desarrollo local

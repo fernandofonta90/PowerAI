@@ -31,3 +31,6 @@ def test_demo_fake_responde_con_datos_y_citacion(
     assert cuerpo["datos_tabulares"]["columnas"] == ["cliente", "saldo"]
     assert len(cuerpo["citacion"]["fuentes"]) == 1
     assert "ar_abiertas" in cuerpo["citacion"]["vistas_usadas"]
+    # Registro de consumo de tokens (insumo del control de costos).
+    assert cuerpo["uso"]["entrada"] > 0
+    assert cuerpo["uso"]["salida"] > 0
