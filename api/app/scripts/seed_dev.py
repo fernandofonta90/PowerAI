@@ -59,6 +59,7 @@ def sembrar(db: Session) -> int:
 
 
 def main() -> None:
+    from app.scripts.seed_catalogo import sembrar_catalogo
     from app.scripts.seed_plantillas import sembrar_plantillas
     from app.scripts.seed_vistas import sembrar_vistas
 
@@ -66,9 +67,10 @@ def main() -> None:
         usuarios = sembrar(db)
         plantillas = sembrar_plantillas(db)
         vistas = sembrar_vistas(db)
+        preguntas = sembrar_catalogo(db)
     print(
-        f"Sembrados {usuarios} usuarios (mock auth), {plantillas} plantillas OTC "
-        f"y {vistas} vistas del catálogo."
+        f"Sembrados {usuarios} usuarios (mock auth), {plantillas} plantillas OTC, "
+        f"{vistas} vistas del catálogo y {preguntas} preguntas del catálogo."
     )
 
 

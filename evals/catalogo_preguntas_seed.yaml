@@ -1,0 +1,239 @@
+# Catálogo de preguntas del SSC — seed para PowerAI
+#
+# Fuente: Casos_uso_IA_SSC.xlsx (hoja "ESP Versión" + Hoja3), levantamiento del
+# equipo del SSC Finanzas LATAM. Texto fiel al Excel.
+#
+# REGLA: "estado" controla si la pregunta es clicable en el catálogo.
+#   - activa:        el sistema TIENE las vistas y datos para responderla bien.
+#   - proximamente:  se muestra en gris, NO clicable (la torre aún no tiene
+#                    vistas/datos cargados). Se activa cuando su torre se sume.
+#
+# Hoy solo OTC está activa (Fase 1 / piloto). Las demás torres quedan en
+# "proximamente" hasta tener su catálogo semántico y datos reales.
+#
+# Para activar una torre en el futuro: cambiar estado a "activa" SOLO cuando
+# sus vistas existan y sus evals pasen. Una pregunta activa es una promesa.
+
+torres:
+
+  OTC:
+    nombre: "OTC — Order to Cash"
+    estado_torre: activa
+    categorias:
+
+      - nombre: "Cartera y cobranza"
+        preguntas:
+          - id: CU-00
+            texto: "¿Cuál es la antigüedad de la cartera por cliente?"
+            estado: activa
+          - id: CU-03
+            texto: "¿Cuáles son los top 5 clientes con mayor deuda vencida?"
+            estado: activa
+          - id: CU-04
+            texto: "¿Cuáles son las facturas más vencidas?"
+            estado: activa
+          - id: CU-05
+            texto: "¿Cómo se distribuye la cartera por rangos de vencimiento (aging por buckets)?"
+            estado: activa
+          - id: CU-06
+            texto: "¿Qué facturas están próximas a vencer?"
+            estado: activa
+          - id: CU-01b
+            texto: "¿Cuáles son las facturas que vencen hoy?"
+            estado: activa
+          - id: CU-07
+            texto: "¿Cuál es el monto total de la cartera por cobrar abierta?"
+            estado: activa
+
+      - nombre: "Comportamiento de pago"
+        preguntas:
+          - id: CU-01
+            texto: "¿Cuál es el promedio de días de pago de los clientes?"
+            estado: activa
+
+      - nombre: "Conciliaciones"
+        preguntas:
+          - id: CU-02
+            texto: "¿Concilian los módulos de AR y GL?"
+            estado: proximamente
+
+      - nombre: "Reservas e incobrabilidad"
+        preguntas:
+          - id: CU-03r
+            texto: "¿Cuáles son las reservas de incobrabilidad MeCCA?"
+            estado: proximamente
+
+  PTP:
+    nombre: "PTP — Procure to Pay"
+    estado_torre: proximamente
+    categorias:
+
+      - nombre: "Pagos a proveedores"
+        preguntas:
+          - id: AP-01
+            texto: "¿Cuál ha sido el top 10 de proveedores a los que más dinero se les ha pagado en un periodo?"
+            estado: proximamente
+          - id: AP-02
+            texto: "¿Cuál es el promedio de días que me tardé en pagar desde la fecha de creación de la factura?"
+            estado: proximamente
+          - id: AP-05
+            texto: "¿Qué proveedores concentran mayor volumen de pagos en el periodo?"
+            estado: proximamente
+          - id: AP-06
+            texto: "¿Qué porcentaje de facturas se pagan fuera de plazo?"
+            estado: proximamente
+
+      - nombre: "Tesorería y proyección"
+        preguntas:
+          - id: AP-03
+            texto: "Según mis históricos, ¿cuánto dinero en total podría llegar a pagar en una fecha?"
+            estado: proximamente
+          - id: AP-04
+            texto: "¿Cuáles son los pagos programados por ejecutar en una fecha específica?"
+            estado: proximamente
+
+      - nombre: "Conciliaciones"
+        preguntas:
+          - id: AP-06c
+            texto: "Conciliación del estado de cuenta bancario vs reporte de pagos en Oracle"
+            estado: proximamente
+          - id: AP-07
+            texto: "¿Qué partidas quedan abiertas en un periodo contable?"
+            estado: proximamente
+          - id: AP-08
+            texto: "Cruce de Project Matching contra Payment Register para identificar facturas pagadas"
+            estado: proximamente
+          - id: AP-09
+            texto: "¿Qué facturas cancelan anticipos y cuáles presentan saldos pendientes?"
+            estado: proximamente
+          - id: AP-10
+            texto: "Comparar los días de crédito de contratos de proveedores vs el master data en Oracle"
+            estado: proximamente
+
+      - nombre: "Reembolsos"
+        preguntas:
+          - id: REEM-01
+            texto: "¿Cuánto tiempo promedio se tarda un reembolso en ser pagado?"
+            estado: proximamente
+          - id: REEM-02
+            texto: "¿Qué días del mes se concentran más reembolsos?"
+            estado: proximamente
+
+  RTR:
+    nombre: "RTR — Record to Report"
+    estado_torre: proximamente
+    categorias:
+
+      - nombre: "Estados de gasto"
+        preguntas:
+          - id: RTR-01
+            texto: "¿Cuál es el estado de gastos por dirección, agrupador de cuentas, marca o servicio?"
+            estado: proximamente
+          - id: RTR-02
+            texto: "¿Cuáles son los principales rubros de gasto del periodo?"
+            estado: proximamente
+          - id: RTR-08
+            texto: "¿Cómo han evolucionado los gastos en los últimos meses?"
+            estado: proximamente
+
+      - nombre: "Presupuesto y control"
+        preguntas:
+          - id: RTR-04
+            texto: "¿Qué centros de costo están desviados contra el presupuesto?"
+            estado: proximamente
+          - id: RTR-07
+            texto: "¿Qué cuentas presentan mayores variaciones vs el mes anterior?"
+            estado: proximamente
+          - id: RTR-09
+            texto: "Según históricos, ¿cómo se espera que cierre el mes?"
+            estado: proximamente
+
+      - nombre: "Proveedores y clientes"
+        preguntas:
+          - id: RTR-03
+            texto: "¿Cuáles son los proveedores con mayor gasto acumulado?"
+            estado: proximamente
+          - id: RTR-05
+            texto: "¿Qué clientes representan mayor impacto en ingresos o gastos asociados?"
+            estado: proximamente
+
+      - nombre: "Trabajos en proceso (WIP)"
+        preguntas:
+          - id: RTR-06
+            texto: "¿Cuánto WIP hay por marca, servicio o responsable?"
+            estado: proximamente
+
+  QCI:
+    nombre: "QCI — Calidad y Atención"
+    estado_torre: proximamente
+    categorias:
+
+      - nombre: "Calidad de servicio"
+        preguntas:
+          - id: QCI-01
+            texto: "¿Puedes analizar la calidad de atención a clientes por cada ejecutivo en las grabaciones de llamadas?"
+            estado: proximamente
+          - id: QCI-02
+            texto: "Análisis de productividad y desempeño del SSC"
+            estado: proximamente
+
+  HTR:
+    nombre: "HTR — Hire to Retire"
+    estado_torre: proximamente
+    categorias:
+
+      - nombre: "Portal de talento"
+        preguntas:
+          - id: HTR-01
+            texto: "Análisis y reportería de uso del portal de talento"
+            estado: proximamente
+          - id: HTR-02
+            texto: "KPIs de los procesos del portal de talento"
+            estado: proximamente
+
+      - nombre: "Nómina y facturación"
+        preguntas:
+          - id: HTR-03
+            texto: "Consolidación de reportería de nómina por órdenes de trabajo"
+            estado: proximamente
+          - id: HTR-07
+            texto: "Facturación del SSC"
+            estado: proximamente
+
+      - nombre: "Datos y organización"
+        preguntas:
+          - id: HTR-04
+            texto: "Curación de datos de la base LATAM (Excel vs lista de SharePoint)"
+            estado: proximamente
+          - id: HTR-08
+            texto: "Armado de organigramas"
+            estado: proximamente
+
+  General:
+    nombre: "Transversales"
+    estado_torre: proximamente
+    categorias:
+
+      - nombre: "Generación y análisis"
+        preguntas:
+          - id: GEN-01
+            texto: "¿Puedes generar un dashboard a partir de la información?"
+            estado: proximamente
+          - id: GEN-02
+            texto: "¿Puedes generar un reporte consolidado de varios archivos?"
+            estado: proximamente
+          - id: GEN-03
+            texto: "¿Puedes dar estadísticas o análisis de la información en Excel o en la base de datos?"
+            estado: proximamente
+
+      - nombre: "Vista financiera integral"
+        preguntas:
+          - id: IA-T01
+            texto: "¿Cuál es la foto financiera completa del negocio al día de hoy?"
+            estado: proximamente
+          - id: IA-T02
+            texto: "¿Qué desviaciones financieras requieren atención inmediata?"
+            estado: proximamente
+          - id: IA-T03
+            texto: "¿Por qué aumentó o disminuyó este gasto?"
+            estado: proximamente
