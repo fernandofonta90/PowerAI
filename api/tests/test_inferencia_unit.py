@@ -16,6 +16,16 @@ def test_fecha_iso() -> None:
     assert inferir_tipo(["2026-01-01", "2026-05-31"], "fecha_emision") is TipoColumna.FECHA
 
 
+def test_fecha_dd_mm_se_infiere_fecha() -> None:
+    # Formato real DD/MM/YYYY (con un 31 que lo desambigua) → fecha.
+    assert inferir_tipo(["10/06/2025", "31/12/2025"], "invoice_date") is TipoColumna.FECHA
+
+
+def test_fecha_ambigua_se_infiere_texto() -> None:
+    # Sin señal para desambiguar → texto (no se corrompe eligiendo orden).
+    assert inferir_tipo(["10/06/2025", "07/08/2025"], "fecha") is TipoColumna.TEXTO
+
+
 def test_texto() -> None:
     assert inferir_tipo(["ACME", "GLOBEX", "INITECH"], "cliente") is TipoColumna.TEXTO
 

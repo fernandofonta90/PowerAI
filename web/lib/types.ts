@@ -204,7 +204,7 @@ export type CrearPlantillaInput = {
   nombre: string;
   frecuencia: Frecuencia;
   columnas: ColumnaSpec[];
-  columna_pais: string;
+  columna_pais: string | null;
   columna_periodo: string | null;
   vista_nombre_negocio: string;
   vista_descripcion: string;

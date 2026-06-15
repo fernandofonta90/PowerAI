@@ -9,6 +9,7 @@ pytestmark = pytest.mark.integration
 ADMIN = {"X-Mock-User": "admin.otc@powerai.dev"}
 UPLOADER = {"X-Mock-User": "uploader.mx@powerai.dev"}
 CONSULTA = {"X-Mock-User": "consulta.co@powerai.dev"}
+ADMIN_PTP = {"X-Mock-User": "admin.ptp@powerai.dev"}
 
 _CSV_AGING = (
     b"pais,periodo,cliente,factura,fecha_emision,fecha_vencimiento,monto,dias_vencido,moneda\n"
@@ -135,6 +136,37 @@ def test_crear_plantilla_con_encabezados_reales_no_da_400(client: Any) -> None:
     assert cols == {"pais", "numero_documento", "monto_usd", "monto_usd_2"}
     # Colisión 'Monto USD' vs 'Monto (USD)' desambiguada y avisada.
     assert any("monto_usd_2" in a for a in cuerpo["avisos"])
+
+
+def test_ptp_pais_declarado_sin_columna_fluye_por_rbac(client: Any) -> None:
+    # Torre PTP no segmenta por país (admin.ptp tiene países='*'). Crea una plantilla
+    # SIN columna de país y carga declarando país=PE: no debe haber fricción de RBAC
+    # ni verificación de país contra el contenido.
+    plantilla = {
+        "torre": "PTP",
+        "nombre": "Pagos PTP",
+        "frecuencia": "mensual",
+        "columnas": [
+            {"nombre": "Supplier Name", "tipo": "texto"},
+            {"nombre": "Invoice Amount", "tipo": "decimal"},
+        ],
+        # columna_pais y columna_periodo omitidas (se declaran al cargar)
+        "vista_nombre_negocio": "Pagos PTP",
+    }
+    creada = client.post("/plantillas", json=plantilla, headers=ADMIN_PTP)
+    assert creada.status_code == 201, creada.text
+    assert creada.json()["plantilla"]["columna_pais"] is None
+    codigo = creada.json()["plantilla"]["codigo"]
+
+    archivo = b"Supplier Name,Invoice Amount\nACME,100.00\nGLOBEX,50.00\n"
+    resp = client.post(
+        "/cargas",
+        data={"plantilla_codigo": codigo, "pais": "PE", "periodo": "2025-11"},
+        files={"archivo": ("ptp.csv", archivo, "text/csv")},
+        headers=ADMIN_PTP,
+    )
+    assert resp.status_code == 202, resp.text  # aceptada, sin 403 ni 422
+    assert resp.json()["pais"] == "PE"
 
 
 def test_consulta_no_puede_crear_plantilla(client: Any) -> None:
