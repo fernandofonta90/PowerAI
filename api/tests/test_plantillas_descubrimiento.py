@@ -63,6 +63,62 @@ def test_emparejar_calce_y_no_calce(seed_vistas: Any) -> None:
     assert "monto" in ar.faltantes
 
 
+# --- M12: plantilla sin columna de periodo (periodo declarado al cargar) ---------------
+
+
+def test_carga_sin_columna_de_periodo_usa_el_declarado(
+    seed_usuarios: Any, almacen_memoria: Any, reader_local: Any
+) -> None:
+    db = seed_usuarios
+    columnas = [
+        ColumnaSpec(nombre="pais", tipo=TipoColumna.TEXTO),
+        ColumnaSpec(nombre="proveedor", tipo=TipoColumna.TEXTO),
+        ColumnaSpec(nombre="monto", tipo=TipoColumna.DECIMAL),
+    ]
+    res = crear_plantilla_con_vista(
+        db,
+        Torre.OTC,
+        nombre_plantilla="Pagos sin periodo",
+        frecuencia=Frecuencia.MENSUAL,
+        columnas=columnas,
+        columna_pais="pais",
+        columna_periodo=None,  # el reporte no trae periodo en columna
+        vista_nombre_negocio="Pagos sin periodo",
+    )
+    assert res.plantilla.columna_periodo is None
+
+    # Archivo sin columna de periodo; el periodo se declara al cargar.
+    datos = b"pais,proveedor,monto\nMX,ACME,100.00\nMX,GLOBEX,50.00\n"
+    carga = registrar_carga(
+        db,
+        almacen_memoria,
+        plantilla=res.plantilla,
+        responsable_email="uploader.mx@powerai.dev",
+        pais="MX",
+        periodo="2026-05",
+        nombre_archivo="pagos.csv",
+        datos=datos,
+    )
+    db.refresh(carga)
+    assert carga.estado is EstadoCarga.DISPONIBLE
+    assert carga.periodo == "2026-05"  # tomado del declarado
+
+    # Una segunda carga del mismo periodo versiona correctamente (v2).
+    carga2 = registrar_carga(
+        db,
+        almacen_memoria,
+        plantilla=res.plantilla,
+        responsable_email="uploader.mx@powerai.dev",
+        pais="MX",
+        periodo="2026-05",
+        nombre_archivo="pagos.csv",
+        datos=b"pais,proveedor,monto\nMX,ACME,101.00\n",
+    )
+    db.refresh(carga2)
+    assert carga2.version == 2
+    assert carga2.periodo == "2026-05"
+
+
 # --- Primera carga: nace plantilla + vista 1:1 y queda consultable ---------------------
 
 

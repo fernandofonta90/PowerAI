@@ -55,6 +55,41 @@ def test_inspeccionar_detecta_calce(client: Any) -> None:
     assert cuerpo["calce"]["codigo"] == "otc_ar_abiertas"
 
 
+def test_inspeccionar_sugiere_tipos(client: Any) -> None:
+    resp = client.post(
+        "/cargas/inspeccionar",
+        data={"torre": "OTC"},
+        files={"archivo": ("aging.csv", _CSV_AGING, "text/csv")},
+        headers=UPLOADER,
+    )
+    assert resp.status_code == 200
+    tipos = resp.json()["tipos_sugeridos"]
+    # Inferencia sobre la muestra: no todo es 'texto'.
+    assert tipos["monto"] == "decimal"
+    assert tipos["dias_vencido"] == "entero"
+    assert tipos["fecha_emision"] == "fecha"
+    assert tipos["cliente"] == "texto"
+
+
+def test_crear_plantilla_sin_columna_de_periodo(client: Any) -> None:
+    payload = {
+        "torre": "OTC",
+        "nombre": "Sin periodo",
+        "frecuencia": "mensual",
+        "columnas": [
+            {"nombre": "pais", "tipo": "texto"},
+            {"nombre": "proveedor", "tipo": "texto"},
+            {"nombre": "monto", "tipo": "decimal"},
+        ],
+        "columna_pais": "pais",
+        # columna_periodo omitida a propósito (se declara al cargar)
+        "vista_nombre_negocio": "Sin periodo",
+    }
+    resp = client.post("/plantillas", json=payload, headers=UPLOADER)
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["plantilla"]["columna_periodo"] is None
+
+
 def test_inspeccionar_consulta_es_403(client: Any) -> None:
     resp = client.post(
         "/cargas/inspeccionar",
