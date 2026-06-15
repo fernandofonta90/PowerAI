@@ -67,6 +67,8 @@ class CargaResponse(BaseModel):
     filas: int | None
     creado_en: datetime
     actualizado_en: datetime
+    # Avisos no bloqueantes de la carga (p. ej. degradación de fecha a texto).
+    avisos: list[str] = []
 
     @classmethod
     def desde(cls, carga: CargaArchivo) -> "CargaResponse":
@@ -84,6 +86,7 @@ class CargaResponse(BaseModel):
             filas=carga.filas,
             creado_en=carga.creado_en,
             actualizado_en=carga.actualizado_en,
+            avisos=list(getattr(carga, "avisos", [])),
         )
 
 

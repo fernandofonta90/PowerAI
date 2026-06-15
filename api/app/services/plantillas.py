@@ -289,10 +289,18 @@ def crear_plantilla_con_vista(
     declara al cargar (campo del formulario) y aplica a todo el archivo.
     """
     columna_periodo = columna_periodo or None
+    columna_pais = columna_pais or None
     # Genera nombres técnicos SQL-seguros desde los encabezados; conserva el
     # encabezado como etiqueta de negocio. El país/periodo se siguen identificando
     # por su encabezado (etiqueta), que es lo que la validación lee del archivo.
     columnas, avisos = slugificar_columnas(columnas)
+    # Las columnas son OPCIONALES por defecto (M16): las celdas vacías entran como
+    # NULL. La EXCEPCIÓN son las llaves: si país/periodo se eligen como columna, esa
+    # columna sí es requerida (no puede faltar la llave que particiona).
+    llaves = {k for k in (columna_pais, columna_periodo) if k}
+    columnas = [
+        c.model_copy(update={"requerida": True}) if c.etiqueta in llaves else c for c in columnas
+    ]
     _validar_definicion(columnas, columna_pais, columna_periodo, vista_nombre_negocio)
     descripciones_columnas = descripciones_columnas or {}
 
@@ -379,6 +387,36 @@ def impacto_edicion(db: Session, plantilla: PlantillaReporte) -> int:
         )
         or 0
     )
+
+
+def degradar_fechas_ambiguas(db: Session, plantilla: PlantillaReporte, tabla: Tabla) -> list[str]:
+    """Degrada a TEXTO las columnas 'fecha' cuyo formato no se puede resolver (M16).
+
+    En vez de rechazar la carga, una columna marcada fecha con valores genuinamente
+    ambiguos o mezclados se carga como texto y se avisa. No corrompe (no adivina el
+    orden) y no rechaza; el usuario puede editar la columna luego si conoce el
+    formato. La vista 1:1 es agnóstica del tipo (solo selecciona la columna), así
+    que no requiere regeneración.
+    """
+    avisos: list[str] = []
+    columnas = plantilla.columnas
+    nuevas: list[ColumnaSpec] = []
+    cambios = False
+    for col in columnas:
+        if col.tipo is TipoColumna.FECHA:
+            crudos = [f.get(col.etiqueta, "") for f in tabla.filas]
+            if any(v.strip() for v in crudos) and detectar_formato_fecha(crudos) is None:
+                col = col.model_copy(update={"tipo": TipoColumna.TEXTO})
+                avisos.append(
+                    f"La columna '{col.etiqueta}' no se pudo interpretar como fecha de forma "
+                    "fiable; se cargó como texto. Puedes editar su tipo si conoces el formato."
+                )
+                cambios = True
+        nuevas.append(col)
+    if cambios:
+        plantilla.columnas_json = [c.model_dump(mode="json") for c in nuevas]
+        db.commit()
+    return avisos
 
 
 def vista_de_plantilla(db: Session, plantilla: PlantillaReporte) -> VistaCatalogo | None:
