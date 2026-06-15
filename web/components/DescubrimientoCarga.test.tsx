@@ -16,6 +16,7 @@ vi.mock("@/lib/api", () => ({
 const CALCE: Inspeccion = {
   columnas: ["pais", "periodo", "monto"],
   filas_muestra: [["MX", "2026-05", "100.00"]],
+  tipos_sugeridos: { pais: "texto", periodo: "texto", monto: "decimal" },
   calce: {
     codigo: "otc_ar_abiertas",
     nombre: "AR abiertas",
@@ -30,8 +31,10 @@ const CALCE: Inspeccion = {
 };
 
 const SIN_CALCE: Inspeccion = {
-  columnas: ["pais", "periodo", "importe"],
-  filas_muestra: [["MX", "2026-05", "100.00"]],
+  // Sin columna de periodo (caso PTP): el periodo se declara al cargar.
+  columnas: ["pais", "proveedor", "importe"],
+  filas_muestra: [["MX", "ACME", "100.00"]],
+  tipos_sugeridos: { pais: "texto", proveedor: "texto", importe: "decimal" },
   calce: null,
   candidatas: [],
 };
@@ -122,8 +125,17 @@ describe("DescubrimientoCarga", () => {
     await waitFor(() =>
       expect(postForm).toHaveBeenCalledWith("/cargas", expect.any(FormData)),
     );
-    // La columna 'importe' viaja en la definición (no se inventa nada).
-    const enviado = post.mock.calls[0][1] as { columnas: { nombre: string }[] };
+    // La columna 'importe' viaja en la definición (no se inventa nada)...
+    const enviado = post.mock.calls[0][1] as {
+      columnas: { nombre: string; tipo: string }[];
+      columna_periodo: string | null;
+    };
     expect(enviado.columnas.map((c) => c.nombre)).toContain("importe");
+    // ...con su tipo inferido (decimal), no 'texto'.
+    expect(enviado.columnas.find((c) => c.nombre === "importe")?.tipo).toBe(
+      "decimal",
+    );
+    // Sin columna de periodo: se manda null (se usa el declarado al cargar).
+    expect(enviado.columna_periodo).toBeNull();
   });
 });
