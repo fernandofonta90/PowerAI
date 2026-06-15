@@ -7,6 +7,7 @@ reglas estructurales (honestidad, gobierno del SQL, RLS) — se inyectan siempre
 from app.auth.schemas import Grant, UsuarioAutenticado
 from app.domain.enums import Rol, Torre
 from app.ia.experto import (
+    FORMATO_OTC,
     GARANTIAS_ESTRUCTURALES,
     ConfigExperto,
     config_fallback,
@@ -59,6 +60,19 @@ def test_garantias_estructurales_existen() -> None:
     assert len(GARANTIAS_ESTRUCTURALES) >= 3
     texto = " ".join(GARANTIAS_ESTRUCTURALES).lower()
     assert "fila" in texto and "no es configurable" in texto
+
+
+def test_formato_otc_corrige_brittleness_conocida() -> None:
+    """M13: la config OTC distingue total único de aging por tramos e incluye el
+    cliente al identificar facturas (recupera el eval ≥95%). Guard de regresión."""
+    texto = FORMATO_OTC.lower()
+    # Totales = un único valor, no desglose por tramos.
+    assert "total" in texto and "único" in texto
+    assert "sin desglosar por tramos" in texto
+    # Aging por tramos solo si se pide explícitamente.
+    assert "aging" in texto and "explícita" in texto
+    # Identificación de registros incluye al cliente.
+    assert "cliente" in texto and "identifican el registro" in texto
 
 
 def test_es_admin_torre() -> None:

@@ -63,13 +63,22 @@ IDENTIDAD_OTC = (
 )
 FORMATO_OTC = (
     "Reglas para el SQL que generes:\n"
-    "- Selecciona SOLO las columnas que la pregunta pide; no agregues columnas de "
+    "- Devuelve solo las columnas necesarias para responder; no agregues columnas de "
     "contexto (moneda, descripción, fechas) salvo que se pidan explícitamente.\n"
-    "- Si la pregunta pide un único valor agregado (un total, una suma, un conteo), "
-    "devuelve UNA sola columna con ese valor, sin agrupar por otras columnas.\n"
-    "- Para la antigüedad de la cartera (aging) usa exactamente estos tramos por días "
-    "vencidos: 'corriente' (=0), '1-30' (1 a 30), '31-60' (31 a 60) y '60+' (más de "
-    "60), una fila por tramo con la suma de monto."
+    "- IDENTIFICACIÓN DE REGISTROS: si la pregunta señala facturas o partidas "
+    "concretas (p. ej. 'la factura más grande', 'las facturas más vencidas', 'el "
+    "cliente que más debe'), incluye SIEMPRE las columnas que identifican el registro "
+    "—el cliente y el número de factura— además del valor pedido. Identificar sin el "
+    "cliente deja la respuesta incompleta.\n"
+    "- TOTALES Y SUMAS: si piden un total, una suma o un conteo (p. ej. 'cuánto suma "
+    "la cartera vencida', 'monto total de la cartera', 'cuántas facturas'), devuelve "
+    "UN único valor, en una sola fila y una sola columna, SIN desglosar por tramos ni "
+    "agrupar por cliente u otra columna.\n"
+    "- AGING POR TRAMOS: SOLO cuando la pregunta lo pida explícitamente (aging, "
+    "antigüedad de la cartera, distribución por rangos/buckets) usa exactamente estos "
+    "tramos por días vencidos: 'corriente' (=0), '1-30' (1 a 30), '31-60' (31 a 60) y "
+    "'60+' (más de 60), una fila por tramo con la suma de monto. Para un total simple "
+    "de cartera vencida NO uses tramos: es una sola suma."
 )
 
 # Fallback genérico cuando una torre no tiene experto activo (evita romper el agente).
