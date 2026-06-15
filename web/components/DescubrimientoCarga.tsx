@@ -203,6 +203,7 @@ export function DescubrimientoCarga({ torre }: { torre: string }) {
         <CrearPlantilla
           torre={torre}
           columnas={insp.columnas}
+          tiposSugeridos={insp.tipos_sugeridos}
           ocupado={ocupado}
           onCrear={async (input) => {
             setOcupado(true);
@@ -273,24 +274,28 @@ function Vista({ insp }: { insp: Inspeccion }) {
 function CrearPlantilla({
   torre,
   columnas,
+  tiposSugeridos,
   ocupado,
   onCrear,
 }: {
   torre: string;
   columnas: string[];
+  tiposSugeridos: Record<string, TipoColumna>;
   ocupado: boolean;
   onCrear: (input: CrearPlantillaInput) => void;
 }) {
+  // Pre-selecciona el tipo inferido por el backend (el usuario solo ajusta lo que esté mal).
   const [tipos, setTipos] = useState<Record<string, TipoColumna>>(
-    Object.fromEntries(columnas.map((c) => [c, "texto" as TipoColumna])),
+    Object.fromEntries(columnas.map((c) => [c, tiposSugeridos[c] ?? "texto"])),
   );
   const [descs, setDescs] = useState<Record<string, string>>({});
-  const [nombre, setNombre] = useState("");
   const [vistaNombre, setVistaNombre] = useState("");
   const [vistaDesc, setVistaDesc] = useState("");
   const [colPais, setColPais] = useState(columnas[0] ?? "");
+  // Periodo opcional: por defecto la columna llamada "periodo" si existe; si no,
+  // "" = sin columna (se usa el periodo declarado al cargar).
   const [colPeriodo, setColPeriodo] = useState(
-    columnas[1] ?? columnas[0] ?? "",
+    columnas.find((c) => /periodo|period/i.test(c)) ?? "",
   );
 
   function enviar() {
@@ -302,11 +307,11 @@ function CrearPlantilla({
     }));
     onCrear({
       torre,
-      nombre: nombre || vistaNombre,
+      nombre: vistaNombre,
       frecuencia: "mensual",
       columnas: cols,
       columna_pais: colPais,
-      columna_periodo: colPeriodo,
+      columna_periodo: colPeriodo || null,
       vista_nombre_negocio: vistaNombre,
       vista_descripcion: vistaDesc,
       descripciones_columnas: descs,
@@ -384,12 +389,13 @@ function CrearPlantilla({
             ))}
           </select>
         </Campo>
-        <Campo etiqueta="Columna de periodo">
+        <Campo etiqueta="Columna de periodo (opcional)">
           <select
             value={colPeriodo}
             onChange={(e) => setColPeriodo(e.target.value)}
             className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-[13px]"
           >
+            <option value="">— sin columna (uso el periodo declarado) —</option>
             {columnas.map((c) => (
               <option key={c} value={c}>
                 {c}

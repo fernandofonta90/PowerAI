@@ -185,7 +185,7 @@ export type PlantillaCandidata = {
   nombre: string;
   columnas_esperadas: string[];
   columna_pais: string;
-  columna_periodo: string;
+  columna_periodo: string | null;
   faltantes: string[];
   extra: string[];
   calza: boolean;
@@ -194,6 +194,7 @@ export type PlantillaCandidata = {
 export type Inspeccion = {
   columnas: string[];
   filas_muestra: string[][];
+  tipos_sugeridos: Record<string, TipoColumna>;
   calce: PlantillaCandidata | null;
   candidatas: PlantillaCandidata[];
 };
@@ -204,7 +205,7 @@ export type CrearPlantillaInput = {
   frecuencia: Frecuencia;
   columnas: ColumnaSpec[];
   columna_pais: string;
-  columna_periodo: string;
+  columna_periodo: string | null;
   vista_nombre_negocio: string;
   vista_descripcion: string;
   descripciones_columnas: Record<string, string>;
