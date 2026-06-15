@@ -20,14 +20,19 @@ from sqlalchemy.orm import Session
 
 from app.auth.schemas import UsuarioAutenticado
 from app.domain.columnas import ColumnaDescrita, ColumnaSpec
-from app.domain.enums import Frecuencia, Rol, Torre
+from app.domain.enums import Frecuencia, Rol, TipoColumna, Torre
+from app.ingesta.coercion import ValorInvalido, coercer
 from app.ingesta.lector import Tabla, leer_tabla
 from app.models.carga import CargaArchivo
 from app.models.plantilla import PlantillaReporte
 from app.models.vista import VistaCatalogo
 
 _FILAS_MUESTRA = 5
+_FILAS_INFERENCIA = 50
 _IDENT = re.compile(r"^[a-z_][a-z0-9_]*$")
+# Nombres que sugieren un identificador (preferir texto aunque parezcan números:
+# suelen tener ceros a la izquierda o prefijos).
+_ID_LIKE = re.compile(r"(?:^|_)(id|number|nro|num|folio|code|codigo|clave|ref)(?:$|_)", re.I)
 
 
 class DefinicionInvalida(Exception):
@@ -50,17 +55,64 @@ def es_admin_torre(usuario: UsuarioAutenticado, torre: Torre) -> bool:
 # --- Inspección y emparejamiento ------------------------------------------------------
 
 
+def _todos_parsean(valores: list[str], tipo: TipoColumna) -> bool:
+    """True si hay al menos un valor y TODOS parsean como ``tipo``."""
+    visto = False
+    for v in valores:
+        try:
+            coercer(v, tipo)
+        except ValorInvalido:
+            return False
+        visto = True
+    return visto
+
+
+def _tiene_cero_izquierda(v: str) -> bool:
+    cuerpo = v.lstrip("+-")
+    return len(cuerpo) > 1 and cuerpo[0] == "0"
+
+
+def inferir_tipo(valores: list[str], nombre: str) -> TipoColumna:
+    """Sugiere el tipo de una columna a partir de una muestra de valores.
+
+    SUGIERE, no impone (el humano confirma). Reglas:
+    - fecha si todos parsean como fecha ISO;
+    - si todos son numéricos: decimal si alguno trae parte decimal; si todos son
+      enteros, ENTERO salvo que parezca identificador (nombre tipo id/number o con
+      ceros a la izquierda) → TEXTO, porque esos "números" no se operan;
+    - texto en cualquier otro caso.
+    """
+    vals = [v.strip() for v in valores if v and v.strip()]
+    if not vals:
+        return TipoColumna.TEXTO
+    if _todos_parsean(vals, TipoColumna.FECHA):
+        return TipoColumna.FECHA
+    if _todos_parsean(vals, TipoColumna.DECIMAL):
+        if _todos_parsean(vals, TipoColumna.ENTERO):
+            if _ID_LIKE.search(nombre) or any(_tiene_cero_izquierda(v) for v in vals):
+                return TipoColumna.TEXTO
+            return TipoColumna.ENTERO
+        return TipoColumna.DECIMAL
+    return TipoColumna.TEXTO
+
+
 @dataclass
 class Inspeccion:
     columnas: list[str]
     filas_muestra: list[list[str]]
+    # Tipo sugerido por columna (la UI lo pre-selecciona; el usuario lo confirma).
+    tipos_sugeridos: dict[str, TipoColumna]
 
 
 def inspeccionar(datos: bytes, nombre_archivo: str) -> Inspeccion:
-    """Lee encabezados y una muestra de filas SIN procesar el archivo."""
+    """Lee encabezados, una muestra de filas y sugiere el tipo de cada columna."""
     tabla = leer_tabla(datos, nombre_archivo)
     muestra = [[f.get(c, "") for c in tabla.columnas] for f in tabla.filas[:_FILAS_MUESTRA]]
-    return Inspeccion(columnas=tabla.columnas, filas_muestra=muestra)
+    n = min(len(tabla.filas), _FILAS_INFERENCIA)
+    tipos = {
+        c: inferir_tipo([tabla.filas[i].get(c, "") for i in range(n)], c) for c in tabla.columnas
+    }
+    return Inspeccion(columnas=tabla.columnas, filas_muestra=muestra, tipos_sugeridos=tipos)
 
 
 @dataclass
@@ -73,7 +125,10 @@ class CandidataPlantilla:
 
 def _esperadas(plantilla: PlantillaReporte) -> set[str]:
     req = {c.nombre for c in plantilla.columnas if c.requerida}
-    return req | {plantilla.columna_pais, plantilla.columna_periodo}
+    req.add(plantilla.columna_pais)
+    if plantilla.columna_periodo:
+        req.add(plantilla.columna_periodo)
+    return req
 
 
 def emparejar(db: Session, torre: Torre, columnas_archivo: list[str]) -> list[CandidataPlantilla]:
@@ -167,12 +222,17 @@ def crear_plantilla_con_vista(
     frecuencia: Frecuencia,
     columnas: list[ColumnaSpec],
     columna_pais: str,
-    columna_periodo: str,
+    columna_periodo: str | None,
     vista_nombre_negocio: str,
     vista_descripcion: str = "",
     descripciones_columnas: dict[str, str] | None = None,
 ) -> PlantillaConVista:
-    """Crea la plantilla y, automáticamente, su vista 1:1. Todo en una transacción."""
+    """Crea la plantilla y, automáticamente, su vista 1:1. Todo en una transacción.
+
+    ``columna_periodo`` es opcional: si no hay columna de periodo, el periodo se
+    declara al cargar (campo del formulario) y aplica a todo el archivo.
+    """
+    columna_periodo = columna_periodo or None
     _validar_definicion(columnas, columna_pais, columna_periodo, vista_nombre_negocio)
     descripciones_columnas = descripciones_columnas or {}
 
@@ -215,7 +275,7 @@ def crear_plantilla_con_vista(
 def _validar_definicion(
     columnas: list[ColumnaSpec],
     columna_pais: str,
-    columna_periodo: str,
+    columna_periodo: str | None,
     vista_nombre_negocio: str,
 ) -> None:
     if not vista_nombre_negocio.strip():
@@ -231,11 +291,15 @@ def _validar_definicion(
             )
     if len(nombres) != len(set(nombres)):
         raise DefinicionInvalida("Hay nombres de columna repetidos.")
-    for etiqueta, llave in (("país", columna_pais), ("periodo", columna_periodo)):
-        if llave not in nombres:
-            raise DefinicionInvalida(
-                f"La llave de {etiqueta} ('{llave}') debe ser una de las columnas definidas."
-            )
+    # País es obligatorio; periodo es OPCIONAL (puede declararse al cargar).
+    if columna_pais not in nombres:
+        raise DefinicionInvalida(
+            f"La llave de país ('{columna_pais}') debe ser una de las columnas definidas."
+        )
+    if columna_periodo and columna_periodo not in nombres:
+        raise DefinicionInvalida(
+            f"La llave de periodo ('{columna_periodo}') debe ser una de las columnas definidas."
+        )
 
 
 # --- Edición gobernada ----------------------------------------------------------------
@@ -267,7 +331,7 @@ def editar_plantilla(
     frecuencia: Frecuencia,
     columnas: list[ColumnaSpec],
     columna_pais: str,
-    columna_periodo: str,
+    columna_periodo: str | None,
 ) -> PlantillaReporte:
     """Edita explícitamente el molde (solo admin). Re-sincroniza la vista 1:1.
 
@@ -275,6 +339,7 @@ def editar_plantilla(
     descripciones de negocio de la vista se conservan para las columnas que sigan
     existiendo; las nuevas reciben una descripción genérica.
     """
+    columna_periodo = columna_periodo or None
     _validar_definicion(columnas, columna_pais, columna_periodo, plantilla.nombre)
     plantilla.nombre = nombre_plantilla.strip()
     plantilla.frecuencia = frecuencia

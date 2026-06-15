@@ -36,7 +36,7 @@ class PlantillaCandidataResponse(BaseModel):
     nombre: str
     columnas_esperadas: list[str]
     columna_pais: str
-    columna_periodo: str
+    columna_periodo: str | None
     faltantes: list[str]
     extra: list[str]
     calza: bool
@@ -45,6 +45,8 @@ class PlantillaCandidataResponse(BaseModel):
 class InspeccionResponse(BaseModel):
     columnas: list[str]
     filas_muestra: list[list[str]]
+    # Tipo sugerido por columna (la UI lo pre-selecciona; el usuario confirma).
+    tipos_sugeridos: dict[str, str]
     # Plantilla cuyo esquema calza tal cual (flujo B directo), si existe.
     calce: PlantillaCandidataResponse | None
     # Todas las plantillas de la torre con su diff (para mapear o decidir crear).
@@ -134,6 +136,7 @@ async def inspeccionar_archivo(
     return InspeccionResponse(
         columnas=insp.columnas,
         filas_muestra=insp.filas_muestra,
+        tipos_sugeridos={c: t.value for c, t in insp.tipos_sugeridos.items()},
         calce=_candidata(calce) if calce else None,
         candidatas=[_candidata(c) for c in candidatas],
     )
