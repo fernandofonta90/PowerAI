@@ -17,11 +17,16 @@ def validar(
     tabla: Tabla,
     columnas: list[ColumnaSpec],
     columna_pais: str,
-    columna_periodo: str,
+    columna_periodo: str | None,
     pais_declarado: str,
     periodo_declarado: str,
 ) -> list[str]:
-    """Valida ``tabla`` contra la plantilla. Lista de errores (vacía si es válida)."""
+    """Valida ``tabla`` contra la plantilla. Lista de errores (vacía si es válida).
+
+    ``columna_periodo`` es opcional: si es None, el periodo no viene en una columna
+    (se declaró al cargar y aplica a todo el archivo), así que no se exige ni se
+    verifica su contenido.
+    """
     errores: list[str] = []
     presentes = set(tabla.columnas)
 
@@ -30,8 +35,12 @@ def validar(
     for nombre in faltantes:
         errores.append(f"Falta la columna requerida: '{nombre}'.")
 
-    # 2. Columnas de país y periodo presentes (estructural).
-    for etiqueta, nombre_col in (("país", columna_pais), ("periodo", columna_periodo)):
+    # 2. Columna de país presente (estructural). La de periodo solo si la plantilla
+    #    la define (es opcional).
+    estructurales = [("país", columna_pais)]
+    if columna_periodo:
+        estructurales.append(("periodo", columna_periodo))
+    for etiqueta, nombre_col in estructurales:
         if nombre_col not in presentes:
             errores.append(f"Falta la columna de {etiqueta}: '{nombre_col}'.")
 
@@ -69,14 +78,16 @@ def validar(
             f"se encontró {sorted(distintos_pais)}."
         )
 
-    # 5. Verificación de periodo declarado vs contenido.
-    periodos = {f.get(columna_periodo, "").strip() for f in tabla.filas}
-    periodos.discard("")
-    distintos_periodo = periodos - {periodo_declarado}
-    if distintos_periodo:
-        errores.append(
-            f"El periodo declarado ('{periodo_declarado}') no coincide con el "
-            f"contenido: se encontró {sorted(distintos_periodo)}."
-        )
+    # 5. Verificación de periodo declarado vs contenido (solo si hay columna de
+    #    periodo; si no, el periodo declarado al cargar aplica a todo el archivo).
+    if columna_periodo:
+        periodos = {f.get(columna_periodo, "").strip() for f in tabla.filas}
+        periodos.discard("")
+        distintos_periodo = periodos - {periodo_declarado}
+        if distintos_periodo:
+            errores.append(
+                f"El periodo declarado ('{periodo_declarado}') no coincide con el "
+                f"contenido: se encontró {sorted(distintos_periodo)}."
+            )
 
     return errores

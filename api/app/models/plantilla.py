@@ -35,8 +35,10 @@ class PlantillaReporte(Base, TimestampMixin):
     columnas_json: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False)
 
     # Columnas del archivo que portan país y periodo (para verificación).
+    # ``columna_periodo`` es OPCIONAL: si el reporte no trae periodo en una columna,
+    # el usuario lo declara al cargar y aplica a todo el archivo (M12).
     columna_pais: Mapped[str] = mapped_column(String(120), nullable=False)
-    columna_periodo: Mapped[str] = mapped_column(String(120), nullable=False)
+    columna_periodo: Mapped[str | None] = mapped_column(String(120), nullable=True)
 
     @property
     def columnas(self) -> list[ColumnaSpec]:
