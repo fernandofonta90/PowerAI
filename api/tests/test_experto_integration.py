@@ -52,12 +52,12 @@ def test_agente_usa_la_config_activa_de_bd(setup: Any, db_session: Any, reader_l
                 )
             ]
         ),
-        RespuestaLLM(contenido="El total es 5550.00."),
+        RespuestaLLM(contenido="El total es 99091.50."),
     ]
     # Sin pasar config: el agente debe cargar la activa de OTC desde la BD.
     res = responder(db_session, _mx(db_session), FakeProvider(guion), [], "¿Total de cartera?")
     assert res.datos_tabulares is not None
-    assert res.datos_tabulares.filas == [["5550.00"]]
+    assert res.datos_tabulares.filas == [["99091.50"]]
     assert res.citacion.vistas_usadas == ["ar_abiertas"]
 
 
@@ -131,7 +131,7 @@ def test_config_que_pasa_evals_se_activa_y_versiona(
         usuario="uploader.mx@powerai.dev",
         respondible=True,
         sql_canonico="SELECT sum(monto) AS total FROM ar_abiertas",
-        asercion={"filas": [["5550.00"]]},
+        asercion={"filas": [["99091.50"]]},
     )
     monkeypatch.setattr(expertos, "preguntas_de_torre", lambda db, torre: [una])
 
@@ -153,7 +153,7 @@ def test_config_que_pasa_evals_se_activa_y_versiona(
                 )
             ]
         ),
-        RespuestaLLM(contenido="El total es 5550.00."),
+        RespuestaLLM(contenido="El total es 99091.50."),
     ]
     resultado = activar_borrador(db_session, FakeProvider(guion), Torre.OTC)
 

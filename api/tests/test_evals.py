@@ -49,7 +49,7 @@ def test_nivel_agente_runner_con_fake(
         usuario="uploader.mx@powerai.dev",
         respondible=True,
         sql_canonico="SELECT sum(monto) AS total FROM ar_abiertas",
-        asercion={"filas": [["5550.00"]]},
+        asercion={"filas": [["99091.50"]]},
     )
     honesta = PreguntaDorada(
         id="t-honesta",
@@ -68,7 +68,7 @@ def test_nivel_agente_runner_con_fake(
                 )
             ]
         ),
-        RespuestaLLM(contenido="El total es 5550.00."),
+        RespuestaLLM(contenido="El total es 99091.50."),
         RespuestaLLM(contenido="No tengo esa información en el catálogo."),
     ]
     reporte = evaluar_agente(db_session, FakeProvider(guion), [respondible, honesta])
