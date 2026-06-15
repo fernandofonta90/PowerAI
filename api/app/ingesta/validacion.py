@@ -30,8 +30,9 @@ def validar(
     errores: list[str] = []
     presentes = set(tabla.columnas)
 
+    # El archivo trae los encabezados originales (etiquetas): se valida por etiqueta.
     # 1. Columnas requeridas presentes.
-    faltantes = [c.nombre for c in columnas if c.requerida and c.nombre not in presentes]
+    faltantes = [c.etiqueta for c in columnas if c.requerida and c.etiqueta not in presentes]
     for nombre in faltantes:
         errores.append(f"Falta la columna requerida: '{nombre}'.")
 
@@ -48,22 +49,22 @@ def validar(
     if errores:
         return errores
 
-    # 3. Tipos de cada columna declarada presente.
+    # 3. Tipos de cada columna declarada presente (por etiqueta = encabezado real).
     for col in columnas:
-        if col.nombre not in presentes:
+        if col.etiqueta not in presentes:
             continue
         problemas = 0
         for i, fila in enumerate(tabla.filas, start=1):
-            valor = fila.get(col.nombre, "")
+            valor = fila.get(col.etiqueta, "")
             if valor == "":
                 if col.requerida:
-                    errores.append(f"Columna '{col.nombre}', fila {i}: valor requerido vacío.")
+                    errores.append(f"Columna '{col.etiqueta}', fila {i}: valor requerido vacío.")
                     problemas += 1
             else:
                 try:
                     coercer(valor, col.tipo)
                 except ValorInvalido as exc:
-                    errores.append(f"Columna '{col.nombre}', fila {i}: {exc}.")
+                    errores.append(f"Columna '{col.etiqueta}', fila {i}: {exc}.")
                     problemas += 1
             if problemas >= _MAX_ERRORES_TIPO:
                 break
