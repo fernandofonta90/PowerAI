@@ -69,6 +69,11 @@ def registrar_carga(
 
         tabla = aplicar_mapeo(tabla, mapeo)
 
+    # 1c. Degradación de fechas ambiguas a texto (no rechaza, avisa) — M16.
+    from app.services.plantillas import degradar_fechas_ambiguas
+
+    avisos = degradar_fechas_ambiguas(db, plantilla, tabla)
+
     # 2. Validación de esquema y verificación de país/periodo (síncrona).
     errores = validar(
         tabla,
@@ -125,4 +130,6 @@ def registrar_carga(
     from app.ingesta.tareas import normalizar_carga
 
     normalizar_carga.delay(str(carga.id))
+    # Avisos no persistidos (p. ej. degradación de fechas): el endpoint los expone.
+    carga.avisos = avisos  # type: ignore[attr-defined]
     return carga

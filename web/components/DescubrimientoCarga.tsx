@@ -71,10 +71,12 @@ export function DescubrimientoCarga({ torre }: { torre: string }) {
       form.append("periodo", periodo.trim());
       form.append("archivo", archivo);
       if (mapeo) form.append("mapeo", JSON.stringify(mapeo));
-      await api.postForm("/cargas", form);
+      const r = await api.postForm<{ avisos?: string[] }>("/cargas", form);
       setOk(
         `Carga aceptada y en proceso contra la plantilla «${plantillaCodigo}».`,
       );
+      // Avisos no bloqueantes de la carga (p. ej. fecha degradada a texto).
+      if (r.avisos?.length) setAvisos((prev) => [...prev, ...r.avisos!]);
       setModo(null);
     } catch (e: unknown) {
       if (e instanceof ApiError && e.status === 422) {
@@ -299,6 +301,9 @@ function CrearPlantilla({
     Object.fromEntries(columnas.map((c) => [c, tiposSugeridos[c] ?? "texto"])),
   );
   const [descs, setDescs] = useState<Record<string, string>>({});
+  // Columnas OPCIONALES por defecto (M16): el admin marca obligatorias solo las
+  // pocas que de verdad lo sean. Las llaves país/periodo las exige el backend.
+  const [requeridas, setRequeridas] = useState<Record<string, boolean>>({});
   const [vistaNombre, setVistaNombre] = useState("");
   const [vistaDesc, setVistaDesc] = useState("");
   // País opcional: por defecto "" = sin columna (se usa el país declarado al
@@ -314,7 +319,7 @@ function CrearPlantilla({
     const cols: ColumnaSpec[] = columnas.map((c) => ({
       nombre: c,
       tipo: tipos[c] ?? "texto",
-      requerida: true,
+      requerida: requeridas[c] ?? false,
       descripcion: descs[c] ?? "",
     }));
     onCrear({
@@ -358,7 +363,7 @@ function CrearPlantilla({
         {columnas.map((c) => (
           <div
             key={c}
-            className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_120px_2fr]"
+            className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_120px_auto_2fr]"
           >
             <span className="self-center text-[13px] text-neutral-700">
               {c}
@@ -377,6 +382,18 @@ function CrearPlantilla({
                 </option>
               ))}
             </select>
+            <label className="flex items-center gap-1 self-center text-[12px] text-neutral-600">
+              <input
+                type="checkbox"
+                aria-label={`Requerida ${c}`}
+                checked={requeridas[c] ?? false}
+                onChange={(e) =>
+                  setRequeridas({ ...requeridas, [c]: e.target.checked })
+                }
+                className="h-3.5 w-3.5 accent-brand-600"
+              />
+              requerida
+            </label>
             <input
               value={descs[c] ?? ""}
               onChange={(e) => setDescs({ ...descs, [c]: e.target.value })}
@@ -385,6 +402,10 @@ function CrearPlantilla({
             />
           </div>
         ))}
+        <p className="text-[12px] text-neutral-400">
+          Las columnas son opcionales por defecto (las celdas vacías se cargan
+          como nulas). Marca “requerida” solo las que no puedan faltar.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
