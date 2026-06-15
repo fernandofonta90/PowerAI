@@ -301,7 +301,9 @@ function CrearPlantilla({
   const [descs, setDescs] = useState<Record<string, string>>({});
   const [vistaNombre, setVistaNombre] = useState("");
   const [vistaDesc, setVistaDesc] = useState("");
-  const [colPais, setColPais] = useState(columnas[0] ?? "");
+  // País opcional: por defecto "" = sin columna (se usa el país declarado al
+  // cargar). NO autoseleccionar la primera columna (eso tomaba "Business Unit").
+  const [colPais, setColPais] = useState("");
   // Periodo opcional: por defecto la columna llamada "periodo" si existe; si no,
   // "" = sin columna (se usa el periodo declarado al cargar).
   const [colPeriodo, setColPeriodo] = useState(
@@ -320,7 +322,7 @@ function CrearPlantilla({
       nombre: vistaNombre,
       frecuencia: "mensual",
       columnas: cols,
-      columna_pais: colPais,
+      columna_pais: colPais || null,
       columna_periodo: colPeriodo || null,
       vista_nombre_negocio: vistaNombre,
       vista_descripcion: vistaDesc,
@@ -386,12 +388,13 @@ function CrearPlantilla({
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Campo etiqueta="Columna de país">
+        <Campo etiqueta="Columna de país (opcional)">
           <select
             value={colPais}
             onChange={(e) => setColPais(e.target.value)}
             className="w-full rounded-lg border border-neutral-200 px-2 py-1.5 text-[13px]"
           >
+            <option value="">— sin columna (uso el país declarado) —</option>
             {columnas.map((c) => (
               <option key={c} value={c}>
                 {c}
