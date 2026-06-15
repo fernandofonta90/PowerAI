@@ -113,6 +113,30 @@ def test_uploader_crea_plantilla_con_vista(client: Any) -> None:
     assert cuerpo["vista"]["plantilla_codigo"] == cuerpo["plantilla"]["codigo"]
 
 
+def test_crear_plantilla_con_encabezados_reales_no_da_400(client: Any) -> None:
+    # Encabezados crudos (mayúsculas/acentos/espacios/símbolos): antes daba 400.
+    payload = {
+        "torre": "OTC",
+        "nombre": "Cartera Perú",
+        "frecuencia": "mensual",
+        "columnas": [
+            {"nombre": "País", "tipo": "texto"},
+            {"nombre": "Número Documento", "tipo": "texto"},
+            {"nombre": "Monto USD", "tipo": "decimal"},
+            {"nombre": "Monto (USD)", "tipo": "decimal"},
+        ],
+        "columna_pais": "País",
+        "vista_nombre_negocio": "Cartera Perú",
+    }
+    resp = client.post("/plantillas", json=payload, headers=UPLOADER)
+    assert resp.status_code == 201, resp.text
+    cuerpo = resp.json()
+    cols = {c["nombre"] for c in cuerpo["plantilla"]["columnas"]}
+    assert cols == {"pais", "numero_documento", "monto_usd", "monto_usd_2"}
+    # Colisión 'Monto USD' vs 'Monto (USD)' desambiguada y avisada.
+    assert any("monto_usd_2" in a for a in cuerpo["avisos"])
+
+
 def test_consulta_no_puede_crear_plantilla(client: Any) -> None:
     assert client.post("/plantillas", json=_NUEVA_PLANTILLA, headers=CONSULTA).status_code == 403
 

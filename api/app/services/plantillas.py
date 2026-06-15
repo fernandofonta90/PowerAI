@@ -13,7 +13,8 @@ Cadena cerrada: plantilla → archivo → vista → fuente del experto (M10), si
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+import unicodedata
+from dataclasses import dataclass, field
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -124,7 +125,9 @@ class CandidataPlantilla:
 
 
 def _esperadas(plantilla: PlantillaReporte) -> set[str]:
-    req = {c.nombre for c in plantilla.columnas if c.requerida}
+    # Por ETIQUETA (encabezado real): el emparejamiento compara contra los
+    # encabezados del archivo, no contra los nombres técnicos (slugs).
+    req = {c.etiqueta for c in plantilla.columnas if c.requerida}
     req.add(plantilla.columna_pais)
     if plantilla.columna_periodo:
         req.add(plantilla.columna_periodo)
@@ -143,9 +146,10 @@ def emparejar(db: Session, torre: Torre, columnas_archivo: list[str]) -> list[Ca
     plantillas = db.scalars(select(PlantillaReporte).where(PlantillaReporte.torre == torre))
     for p in plantillas:
         esperadas = _esperadas(p)
-        nombres = {c.nombre for c in p.columnas}
+        # Conocidas por la plantilla = etiquetas (encabezados reales) + llaves.
+        conocidas = {c.etiqueta for c in p.columnas} | {p.columna_pais, p.columna_periodo}
         faltantes = sorted(esperadas - presentes)
-        extra = sorted(presentes - nombres - {p.columna_pais, p.columna_periodo})
+        extra = sorted(presentes - conocidas)
         candidatas.append(
             CandidataPlantilla(plantilla=p, faltantes=faltantes, extra=extra, calza=not faltantes)
         )
@@ -156,11 +160,56 @@ def emparejar(db: Session, torre: Torre, columnas_archivo: list[str]) -> list[Ca
 # --- Generación de identificadores SQL-seguros ----------------------------------------
 
 
-def _slug(texto: str) -> str:
-    s = re.sub(r"[^a-z0-9]+", "_", texto.lower()).strip("_")
+def _sin_acentos(texto: str) -> str:
+    """Pliega acentos/diacríticos a ASCII (Número → Numero, País → Pais)."""
+    nfkd = unicodedata.normalize("NFKD", texto)
+    return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+
+def _slug(texto: str, prefijo: str = "col") -> str:
+    """Convierte un texto (encabezado) en un identificador SQL-seguro.
+
+    Minúsculas, sin acentos, espacios/símbolos → guion bajo, empezando por letra.
+    "Número Documento" → numero_documento; "Importe S/" → importe_s; "RUC" → ruc.
+    """
+    s = re.sub(r"[^a-z0-9]+", "_", _sin_acentos(texto).lower()).strip("_")
     if not s or not s[0].isalpha():
-        s = f"v_{s}" if s else "vista"
+        s = f"{prefijo}_{s}".rstrip("_") if s else prefijo
     return s[:60]
+
+
+def slugificar_columnas(columnas: list[ColumnaSpec]) -> tuple[list[ColumnaSpec], list[str]]:
+    """Genera el nombre técnico (slug) de cada columna desde su encabezado.
+
+    El encabezado original (``etiqueta``) se conserva como etiqueta de negocio. Si
+    dos encabezados slugifican igual, se desambigua con sufijo numérico y se reporta
+    el aviso. Devuelve (columnas con nombre=slug y etiqueta=encabezado, avisos).
+    """
+    usados: set[str] = set()
+    resultado: list[ColumnaSpec] = []
+    avisos: list[str] = []
+    for col in columnas:
+        encabezado = col.etiqueta or col.nombre
+        base = _slug(encabezado)
+        slug, n = base, 2
+        while slug in usados:
+            slug, n = f"{base}_{n}", n + 1
+        if slug != base:
+            avisos.append(
+                f"El encabezado '{encabezado}' genera el mismo nombre técnico que otro; "
+                f"se usó '{slug}' para desambiguar."
+            )
+        usados.add(slug)
+        resultado.append(
+            ColumnaSpec(
+                nombre=slug,
+                tipo=col.tipo,
+                requerida=col.requerida,
+                descripcion=col.descripcion,
+                etiqueta=encabezado,
+            )
+        )
+    return resultado, avisos
 
 
 def _vista_existe(db: Session, nombre: str) -> bool:
@@ -194,6 +243,7 @@ def _plantilla_codigo_unico(db: Session, base: str) -> str:
 class PlantillaConVista:
     plantilla: PlantillaReporte
     vista: VistaCatalogo
+    avisos: list[str] = field(default_factory=list)
 
 
 def _sql_vista(codigo: str, columnas: list[ColumnaSpec]) -> str:
@@ -206,10 +256,12 @@ def _columnas_descritas(
 ) -> list[ColumnaDescrita]:
     descritas: list[ColumnaDescrita] = []
     for c in columnas:
-        desc = (descripciones.get(c.nombre) or "").strip()
+        # Las descripciones llegan indexadas por el encabezado (etiqueta) que ve
+        # el usuario; la vista guarda el nombre técnico (slug).
+        desc = (descripciones.get(c.etiqueta) or descripciones.get(c.nombre) or "").strip()
         if not desc:
             # Genérica si se deja vacía (pero la UI invita a llenarla).
-            desc = f"Columna '{c.nombre}' de {nombre_negocio}."
+            desc = f"Columna '{c.etiqueta}' de {nombre_negocio}."
         descritas.append(ColumnaDescrita(nombre=c.nombre, descripcion=desc))
     return descritas
 
@@ -233,10 +285,14 @@ def crear_plantilla_con_vista(
     declara al cargar (campo del formulario) y aplica a todo el archivo.
     """
     columna_periodo = columna_periodo or None
+    # Genera nombres técnicos SQL-seguros desde los encabezados; conserva el
+    # encabezado como etiqueta de negocio. El país/periodo se siguen identificando
+    # por su encabezado (etiqueta), que es lo que la validación lee del archivo.
+    columnas, avisos = slugificar_columnas(columnas)
     _validar_definicion(columnas, columna_pais, columna_periodo, vista_nombre_negocio)
     descripciones_columnas = descripciones_columnas or {}
 
-    base = _slug(vista_nombre_negocio)
+    base = _slug(vista_nombre_negocio, prefijo="vista")
     vista_nombre = _vista_nombre_unico(db, base)
     codigo = _plantilla_codigo_unico(db, f"{torre.value.lower()}_{base}")
 
@@ -269,7 +325,7 @@ def crear_plantilla_con_vista(
     db.commit()
     db.refresh(plantilla)
     db.refresh(vista)
-    return PlantillaConVista(plantilla=plantilla, vista=vista)
+    return PlantillaConVista(plantilla=plantilla, vista=vista, avisos=avisos)
 
 
 def _validar_definicion(
@@ -291,12 +347,15 @@ def _validar_definicion(
             )
     if len(nombres) != len(set(nombres)):
         raise DefinicionInvalida("Hay nombres de columna repetidos.")
+    # Las llaves se identifican por encabezado (etiqueta) o por nombre técnico, para
+    # servir tanto al flujo de creación (etiqueta) como a la edición (slug).
+    identificadores = set(nombres) | {c.etiqueta for c in columnas}
     # País es obligatorio; periodo es OPCIONAL (puede declararse al cargar).
-    if columna_pais not in nombres:
+    if columna_pais not in identificadores:
         raise DefinicionInvalida(
             f"La llave de país ('{columna_pais}') debe ser una de las columnas definidas."
         )
-    if columna_periodo and columna_periodo not in nombres:
+    if columna_periodo and columna_periodo not in identificadores:
         raise DefinicionInvalida(
             f"La llave de periodo ('{columna_periodo}') debe ser una de las columnas definidas."
         )

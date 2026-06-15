@@ -214,4 +214,5 @@ export type CrearPlantillaInput = {
 export type PlantillaCreada = {
   plantilla: { codigo: string; nombre: string; torre: string };
   vista: { nombre: string; titulo: string; plantilla_codigo: string };
+  avisos: string[];
 };

@@ -106,6 +106,8 @@ class EditarVistaIn(BaseModel):
 class PlantillaConVistaResponse(BaseModel):
     plantilla: PlantillaResponse
     vista: VistaResponse
+    # Avisos de la creación (p. ej. colisiones de nombre técnico desambiguadas).
+    avisos: list[str] = []
 
 
 class PlantillaEditadaResponse(BaseModel):
@@ -159,6 +161,7 @@ def crear_plantilla(
     return PlantillaConVistaResponse(
         plantilla=PlantillaResponse.desde(res.plantilla),
         vista=VistaResponse.desde(res.vista),
+        avisos=res.avisos,
     )
 
 

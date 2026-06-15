@@ -44,10 +44,12 @@ def a_parquet(tabla: Tabla, columnas: list[ColumnaSpec]) -> bytes:
     campos = [pa.field(c.nombre, _PA_TIPOS[c.tipo]) for c in columnas]
     esquema = pa.schema(campos)
 
+    # Se lee del archivo por el encabezado original (etiqueta) y se escribe bajo el
+    # nombre técnico (slug), que es el que usan el Parquet, las vistas y DuckDB.
     datos_por_columna: dict[str, list[object]] = {}
     for col in columnas:
         datos_por_columna[col.nombre] = [
-            _valor_pa(fila.get(col.nombre, ""), col.tipo) for fila in tabla.filas
+            _valor_pa(fila.get(col.etiqueta, ""), col.tipo) for fila in tabla.filas
         ]
 
     tabla_pa = pa.table(datos_por_columna, schema=esquema)

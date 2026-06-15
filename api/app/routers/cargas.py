@@ -99,7 +99,8 @@ def _candidata(c: CandidataPlantilla) -> PlantillaCandidataResponse:
     return PlantillaCandidataResponse(
         codigo=c.plantilla.codigo,
         nombre=c.plantilla.nombre,
-        columnas_esperadas=[col.nombre for col in c.plantilla.columnas],
+        # Encabezados reales que la plantilla espera (para mapear el archivo nuevo).
+        columnas_esperadas=[col.etiqueta for col in c.plantilla.columnas],
         columna_pais=c.plantilla.columna_pais,
         columna_periodo=c.plantilla.columna_periodo,
         faltantes=c.faltantes,

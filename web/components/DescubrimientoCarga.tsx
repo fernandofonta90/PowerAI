@@ -26,6 +26,7 @@ export function DescubrimientoCarga({ torre }: { torre: string }) {
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [avisos, setAvisos] = useState<string[]>([]);
 
   function reset() {
     setInsp(null);
@@ -33,6 +34,7 @@ export function DescubrimientoCarga({ torre }: { torre: string }) {
     setCandidata(null);
     setError(null);
     setOk(null);
+    setAvisos([]);
   }
 
   async function inspeccionar() {
@@ -141,6 +143,13 @@ export function DescubrimientoCarga({ torre }: { torre: string }) {
           {ok}
         </p>
       )}
+      {avisos.length > 0 && (
+        <ul className="rounded-lg border border-warning-600/30 bg-warning-600/5 p-3 text-[12.5px] text-warning-700">
+          {avisos.map((a) => (
+            <li key={a}>{a}</li>
+          ))}
+        </ul>
+      )}
 
       {insp && (
         <>
@@ -213,6 +222,7 @@ export function DescubrimientoCarga({ torre }: { torre: string }) {
                 "/plantillas",
                 input,
               );
+              setAvisos(creada.avisos ?? []);
               await guardarCarga(creada.plantilla.codigo);
               setModo(null);
             } catch (e: unknown) {
