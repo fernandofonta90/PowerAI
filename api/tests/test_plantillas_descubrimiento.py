@@ -35,6 +35,11 @@ def _mx(db: Any) -> Any:
     return MockAuthProvider().autenticar(db, "uploader.mx@powerai.dev")
 
 
+def _admin(db: Any) -> Any:
+    # Admin OTC tiene país '*': ve todos los países (incluido uno declarado como PE).
+    return MockAuthProvider().autenticar(db, "admin.otc@powerai.dev")
+
+
 # --- Emparejamiento -------------------------------------------------------------------
 
 
@@ -61,6 +66,63 @@ def test_emparejar_calce_y_no_calce(seed_vistas: Any) -> None:
     ar = next(c for c in cands2 if c.plantilla.codigo == "otc_ar_abiertas")
     assert not ar.calza
     assert "monto" in ar.faltantes
+
+
+# --- M15: archivo PTP real (país declarado sin columna + fechas mixtas) ----------------
+
+
+def test_carga_ptp_pais_declarado_y_fechas_mixtas_sin_rechazo(
+    seed_usuarios: Any, almacen_memoria: Any, reader_local: Any
+) -> None:
+    """Reproduce el caso PTP: sin columna de país (declarado al cargar) y fechas en
+    formatos mixtos por columna (Invoice Date DD/MM, Payment Date MM/DD)."""
+    db = seed_usuarios
+    columnas = [
+        ColumnaSpec(nombre="Supplier Name", tipo=TipoColumna.TEXTO),
+        ColumnaSpec(nombre="Invoice Amount", tipo=TipoColumna.DECIMAL),
+        ColumnaSpec(nombre="Invoice Date", tipo=TipoColumna.FECHA),
+        ColumnaSpec(nombre="Payment Date", tipo=TipoColumna.FECHA),
+    ]
+    res = crear_plantilla_con_vista(
+        db,
+        Torre.OTC,  # da igual la torre para este test del motor de ingesta
+        nombre_plantilla="Pagos PTP",
+        frecuencia=Frecuencia.MENSUAL,
+        columnas=columnas,
+        columna_pais=None,  # PTP no trae el código de país literal
+        columna_periodo=None,
+        vista_nombre_negocio="Pagos PTP",
+    )
+    # Invoice Date en DD/MM/YYYY (con 31 que desambigua); Payment Date en MM/DD/YYYY.
+    datos = (
+        b"Supplier Name,Invoice Amount,Invoice Date,Payment Date\n"
+        b"ACME,100.00,10/06/2025,10/31/2025\n"
+        b"GLOBEX,50.00,31/12/2025,12/15/2025\n"
+    )
+    carga = registrar_carga(
+        db,
+        almacen_memoria,
+        plantilla=res.plantilla,
+        responsable_email="uploader.mx@powerai.dev",
+        pais="PE",  # declarado, no verificado contra columna
+        periodo="2025-11",
+        nombre_archivo="ptp.csv",
+        datos=datos,
+    )
+    db.refresh(carga)
+    assert carga.estado is EstadoCarga.DISPONIBLE  # ¡sin rechazo!
+    assert carga.pais == "PE"
+
+    # Las fechas se parsearon correcto a ISO por columna (consulta con acceso a PE).
+    r = ejecutar_consulta(
+        db,
+        _admin(db),
+        f"SELECT invoice_date, payment_date FROM {res.vista.nombre} ORDER BY invoice_amount DESC",
+    )
+    assert r.filas == [
+        ["2025-06-10", "2025-10-31"],  # 10/06 dmy → 10-jun ; 10/31 mdy → 31-oct
+        ["2025-12-31", "2025-12-15"],  # 31/12 dmy → 31-dic ; 12/15 mdy → 15-dic
+    ]
 
 
 # --- M14: encabezados reales (mayúsculas/acentos/espacios) → slug, sin 400 -------------
