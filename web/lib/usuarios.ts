@@ -37,6 +37,26 @@ export const USUARIOS_MOCK: UsuarioMock[] = [
     inicial: "MT",
     puedeCargar: false,
   },
+  // Escenario PTP (placeholder de desarrollo; países MX/CO ajustables).
+  {
+    email: "admin.ptp@powerai.dev",
+    nombre: "Admin PTP",
+    inicial: "AP",
+    puedeCargar: true,
+    adminTorre: "PTP",
+  },
+  {
+    email: "uploader.ptp.mx@powerai.dev",
+    nombre: "Cargador PTP MX",
+    inicial: "PM",
+    puedeCargar: true,
+  },
+  {
+    email: "consulta.ptp.co@powerai.dev",
+    nombre: "Analista PTP CO",
+    inicial: "PC",
+    puedeCargar: false,
+  },
 ];
 
 export const USUARIO_POR_DEFECTO = USUARIOS_MOCK[1].email; // uploader.mx

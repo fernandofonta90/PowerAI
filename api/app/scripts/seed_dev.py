@@ -35,6 +35,24 @@ USUARIOS_DEV: list[tuple[str, str, list[tuple[Torre, str, Rol]]]] = [
         "Usuario multi-torre",
         [(Torre.OTC, "MX", Rol.CONSULTA), (Torre.PTP, "AR", Rol.CONSULTA)],
     ),
+    # --- Escenario PTP (perfiles análogos a OTC para probar la torre). ---
+    # PLACEHOLDER de desarrollo: los países (MX/CO) son los mismos que OTC mientras
+    # Fernando confirma la cobertura real de PTP. Ajustable cuando se confirme.
+    (
+        "admin.ptp@powerai.dev",
+        "Admin PTP (todos los países)",
+        [(Torre.PTP, PAIS_TODOS, Rol.ADMIN)],
+    ),
+    (
+        "uploader.ptp.mx@powerai.dev",
+        "Cargador PTP México",
+        [(Torre.PTP, "MX", Rol.UPLOADER)],
+    ),
+    (
+        "consulta.ptp.co@powerai.dev",
+        "Analista PTP Colombia",
+        [(Torre.PTP, "CO", Rol.CONSULTA)],
+    ),
 ]
 
 
