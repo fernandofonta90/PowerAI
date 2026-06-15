@@ -41,7 +41,7 @@ class PlantillaResponse(BaseModel):
     torre: Torre
     descripcion: str
     frecuencia: Frecuencia
-    columna_pais: str
+    columna_pais: str | None
     columna_periodo: str | None
     columnas: list[ColumnaSpec]
 
@@ -82,7 +82,7 @@ class CrearPlantillaIn(BaseModel):
     nombre: str = Field(min_length=1, max_length=200)
     frecuencia: Frecuencia
     columnas: list[ColumnaSpec] = Field(min_length=1)
-    columna_pais: str
+    columna_pais: str | None = None
     columna_periodo: str | None = None
     vista_nombre_negocio: str = Field(min_length=1, max_length=200)
     vista_descripcion: str = ""
@@ -93,7 +93,7 @@ class EditarPlantillaIn(BaseModel):
     nombre: str = Field(min_length=1, max_length=200)
     frecuencia: Frecuencia
     columnas: list[ColumnaSpec] = Field(min_length=1)
-    columna_pais: str
+    columna_pais: str | None = None
     columna_periodo: str | None = None
 
 

@@ -23,6 +23,7 @@ from app.auth.schemas import UsuarioAutenticado
 from app.domain.columnas import ColumnaDescrita, ColumnaSpec
 from app.domain.enums import Frecuencia, Rol, TipoColumna, Torre
 from app.ingesta.coercion import ValorInvalido, coercer
+from app.ingesta.fechas import detectar_formato_fecha
 from app.ingesta.lector import Tabla, leer_tabla
 from app.models.carga import CargaArchivo
 from app.models.plantilla import PlantillaReporte
@@ -77,7 +78,8 @@ def inferir_tipo(valores: list[str], nombre: str) -> TipoColumna:
     """Sugiere el tipo de una columna a partir de una muestra de valores.
 
     SUGIERE, no impone (el humano confirma). Reglas:
-    - fecha si todos parsean como fecha ISO;
+    - fecha si la columna tiene un formato de fecha reconocible y no ambiguo
+      (ISO, DD/MM o MM/DD detectado por sus valores); una fecha ambigua va a texto;
     - si todos son numéricos: decimal si alguno trae parte decimal; si todos son
       enteros, ENTERO salvo que parezca identificador (nombre tipo id/number o con
       ceros a la izquierda) → TEXTO, porque esos "números" no se operan;
@@ -86,7 +88,7 @@ def inferir_tipo(valores: list[str], nombre: str) -> TipoColumna:
     vals = [v.strip() for v in valores if v and v.strip()]
     if not vals:
         return TipoColumna.TEXTO
-    if _todos_parsean(vals, TipoColumna.FECHA):
+    if detectar_formato_fecha(vals) is not None:
         return TipoColumna.FECHA
     if _todos_parsean(vals, TipoColumna.DECIMAL):
         if _todos_parsean(vals, TipoColumna.ENTERO):
@@ -128,7 +130,8 @@ def _esperadas(plantilla: PlantillaReporte) -> set[str]:
     # Por ETIQUETA (encabezado real): el emparejamiento compara contra los
     # encabezados del archivo, no contra los nombres técnicos (slugs).
     req = {c.etiqueta for c in plantilla.columnas if c.requerida}
-    req.add(plantilla.columna_pais)
+    if plantilla.columna_pais:
+        req.add(plantilla.columna_pais)
     if plantilla.columna_periodo:
         req.add(plantilla.columna_periodo)
     return req
@@ -147,7 +150,8 @@ def emparejar(db: Session, torre: Torre, columnas_archivo: list[str]) -> list[Ca
     for p in plantillas:
         esperadas = _esperadas(p)
         # Conocidas por la plantilla = etiquetas (encabezados reales) + llaves.
-        conocidas = {c.etiqueta for c in p.columnas} | {p.columna_pais, p.columna_periodo}
+        conocidas = {c.etiqueta for c in p.columnas}
+        conocidas |= {k for k in (p.columna_pais, p.columna_periodo) if k}
         faltantes = sorted(esperadas - presentes)
         extra = sorted(presentes - conocidas)
         candidatas.append(
@@ -273,7 +277,7 @@ def crear_plantilla_con_vista(
     nombre_plantilla: str,
     frecuencia: Frecuencia,
     columnas: list[ColumnaSpec],
-    columna_pais: str,
+    columna_pais: str | None,
     columna_periodo: str | None,
     vista_nombre_negocio: str,
     vista_descripcion: str = "",
@@ -330,7 +334,7 @@ def crear_plantilla_con_vista(
 
 def _validar_definicion(
     columnas: list[ColumnaSpec],
-    columna_pais: str,
+    columna_pais: str | None,
     columna_periodo: str | None,
     vista_nombre_negocio: str,
 ) -> None:
@@ -350,8 +354,9 @@ def _validar_definicion(
     # Las llaves se identifican por encabezado (etiqueta) o por nombre técnico, para
     # servir tanto al flujo de creación (etiqueta) como a la edición (slug).
     identificadores = set(nombres) | {c.etiqueta for c in columnas}
-    # País es obligatorio; periodo es OPCIONAL (puede declararse al cargar).
-    if columna_pais not in identificadores:
+    # País y periodo son OPCIONALES (pueden declararse al cargar). Si se indican,
+    # deben referir a una columna definida (por nombre técnico o por encabezado).
+    if columna_pais and columna_pais not in identificadores:
         raise DefinicionInvalida(
             f"La llave de país ('{columna_pais}') debe ser una de las columnas definidas."
         )
@@ -389,7 +394,7 @@ def editar_plantilla(
     nombre_plantilla: str,
     frecuencia: Frecuencia,
     columnas: list[ColumnaSpec],
-    columna_pais: str,
+    columna_pais: str | None,
     columna_periodo: str | None,
 ) -> PlantillaReporte:
     """Edita explícitamente el molde (solo admin). Re-sincroniza la vista 1:1.

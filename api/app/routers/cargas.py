@@ -35,7 +35,7 @@ class PlantillaCandidataResponse(BaseModel):
     codigo: str
     nombre: str
     columnas_esperadas: list[str]
-    columna_pais: str
+    columna_pais: str | None
     columna_periodo: str | None
     faltantes: list[str]
     extra: list[str]
