@@ -30,6 +30,11 @@ def normalizar_carga(carga_id: str) -> None:
             almacen = get_almacen()
             datos = almacen.leer(CONTENEDOR_ORIGINALES, carga.blob_path_original)
             tabla = leer_tabla(datos, carga.nombre_archivo_original)
+            if carga.mapeo_json:
+                # Reaplica el mismo mapeo que pasó la validación síncrona.
+                from app.services.plantillas import aplicar_mapeo
+
+                tabla = aplicar_mapeo(tabla, carga.mapeo_json)
             parquet = a_parquet(tabla, carga.plantilla.columnas)
 
             destino = ruta_parquet(

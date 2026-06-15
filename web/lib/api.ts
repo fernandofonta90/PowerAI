@@ -40,12 +40,26 @@ async function request<T>(ruta: string, init?: RequestInit): Promise<T> {
   return (await resp.json()) as T;
 }
 
+// Envío multipart (archivos): el navegador fija el Content-Type con su boundary.
+async function requestForm<T>(ruta: string, form: FormData): Promise<T> {
+  const resp = await fetch(`${BASE}${ruta}`, {
+    method: "POST",
+    body: form,
+    headers: { "X-Mock-User": usuarioActual() },
+  });
+  if (!resp.ok) {
+    throw new ApiError(resp.status, `${resp.status} ${resp.statusText}`);
+  }
+  return (await resp.json()) as T;
+}
+
 export const api = {
   get: <T>(ruta: string) => request<T>(ruta),
   post: <T>(ruta: string, cuerpo?: unknown) =>
     request<T>(ruta, { method: "POST", body: JSON.stringify(cuerpo ?? {}) }),
   put: <T>(ruta: string, cuerpo?: unknown) =>
     request<T>(ruta, { method: "PUT", body: JSON.stringify(cuerpo ?? {}) }),
+  postForm: <T>(ruta: string, form: FormData) => requestForm<T>(ruta, form),
   patch: <T>(ruta: string, cuerpo?: unknown) =>
     request<T>(ruta, { method: "PATCH", body: JSON.stringify(cuerpo ?? {}) }),
   del: <T>(ruta: string) => request<T>(ruta, { method: "DELETE" }),

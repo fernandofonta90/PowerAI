@@ -167,3 +167,50 @@ export type ConfigExpertoInput = {
   instrucciones_formato: string;
   fuentes: string[];
 };
+
+// --- Plantillas por descubrimiento (M11) ---
+
+export type TipoColumna = "texto" | "entero" | "decimal" | "fecha";
+export type Frecuencia = "diaria" | "semanal" | "quincenal" | "mensual";
+
+export type ColumnaSpec = {
+  nombre: string;
+  tipo: TipoColumna;
+  requerida?: boolean;
+  descripcion?: string;
+};
+
+export type PlantillaCandidata = {
+  codigo: string;
+  nombre: string;
+  columnas_esperadas: string[];
+  columna_pais: string;
+  columna_periodo: string;
+  faltantes: string[];
+  extra: string[];
+  calza: boolean;
+};
+
+export type Inspeccion = {
+  columnas: string[];
+  filas_muestra: string[][];
+  calce: PlantillaCandidata | null;
+  candidatas: PlantillaCandidata[];
+};
+
+export type CrearPlantillaInput = {
+  torre: string;
+  nombre: string;
+  frecuencia: Frecuencia;
+  columnas: ColumnaSpec[];
+  columna_pais: string;
+  columna_periodo: string;
+  vista_nombre_negocio: string;
+  vista_descripcion: string;
+  descripciones_columnas: Record<string, string>;
+};
+
+export type PlantillaCreada = {
+  plantilla: { codigo: string; nombre: string; torre: string };
+  vista: { nombre: string; titulo: string; plantilla_codigo: string };
+};
