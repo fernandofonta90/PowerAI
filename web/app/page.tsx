@@ -4,12 +4,12 @@ import { ArrowRight, ArrowUp, Settings2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { ChatBanner } from "@/components/ChatBanner";
 import { ContextGrid } from "@/components/ContextGrid";
 import { SugeridasChips } from "@/components/SugeridasChips";
 import { Sparkle } from "@/components/Sparkle";
 import { useUsuario } from "@/context/UsuarioContext";
 import { api } from "@/lib/api";
-import { saludo } from "@/lib/format";
 import type { Conversacion } from "@/lib/types";
 import { buscarUsuario } from "@/lib/usuarios";
 
@@ -39,18 +39,12 @@ export default function HomePage() {
 
   return (
     <div className="w-full px-6 py-16">
-      {/* 1. Hero de pregunta (centrado, ~560px) */}
-      <section className="mx-auto flex w-full max-w-[560px] flex-col items-center text-center">
-        <h1 className="flex items-center gap-2 text-[21px] font-medium text-neutral-900">
-          <Sparkle className="h-5 w-5 text-brand-600" />
-          {saludo()}
-          {nombre ? `, ${nombre}` : ""}
-        </h1>
-        <p className="mt-1.5 text-[14px] text-neutral-500">
-          Pregunta sobre la información de tu torre
-        </p>
-
-        <div className="mt-7 w-full">
+      {/* 1. Banner ancho con saludo + animación; input y chips debajo (~560px) */}
+      <div className="mx-auto w-full max-w-[760px]">
+        <ChatBanner nombre={nombre} />
+      </div>
+      <section className="mx-auto mt-8 flex w-full max-w-[560px] flex-col items-center text-center">
+        <div className="w-full">
           <div className="flex items-center gap-2 rounded-2xl border border-brand-200 bg-white px-4 py-3 shadow-hero">
             <Sparkle className="h-5 w-5 shrink-0 text-brand-600" />
             <input
