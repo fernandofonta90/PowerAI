@@ -224,14 +224,19 @@ def editar_vista_endpoint(
     usuario: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> VistaResponse:
-    """Edita el nombre de negocio y las descripciones de la vista. Admin o uploader."""
+    """Edita el nombre de negocio y las descripciones de la vista. SOLO admin.
+
+    Editar lo establecido (molde y vista) es solo admin: el nombre y las
+    descripciones de la vista son lo que el experto lee para decidir qué consultar,
+    tan sensible como el molde. Crear sí es admin|uploader (parte del flujo de carga).
+    """
     vista = db.scalar(select(VistaCatalogo).where(VistaCatalogo.nombre == nombre))
     if vista is None or vista.torre not in usuario.torres_accesibles():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vista no encontrada.")
-    if not puede_definir(usuario, vista.torre):
+    if not es_admin_torre(usuario, vista.torre):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Se requiere rol admin o uploader sobre la torre {vista.torre.value}.",
+            detail=f"Editar la vista requiere rol admin de la torre {vista.torre.value}.",
         )
     try:
         editada = editar_vista(

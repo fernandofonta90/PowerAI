@@ -306,7 +306,11 @@ def editar_vista(
     descripcion: str,
     descripciones_columnas: dict[str, str] | None = None,
 ) -> VistaCatalogo:
-    """Edita el nombre de negocio y las descripciones de la vista (admin/uploader)."""
+    """Edita el nombre de negocio y las descripciones de la vista.
+
+    El RBAC (solo admin) lo aplica el endpoint: editar lo establecido es tan
+    sensible como el molde, porque estas descripciones guían al experto.
+    """
     if not titulo.strip():
         raise DefinicionInvalida("El nombre de negocio de la vista es obligatorio.")
     descripciones_columnas = descripciones_columnas or {}

@@ -13,8 +13,8 @@ La estructura se descubre desde la primera carga y se gobierna:
 2. **Cargas siguientes: comparar, no redefinir.** Si los encabezados calzan con la plantilla, se previsualiza y se guarda. Si no calzan, se ofrece **mapear** las columnas del archivo a las esperadas. El mapeo acomoda esa carga puntual (se persiste en la carga y el worker lo reaplica al derivar el Parquet); **nunca** muta el molde.
 
 3. **Definición gobernada (dos barandales inviolables).**
-   - Crear plantilla/vista o editar una vista = admin **o** uploader de la torre; nunca un consultante. Cargas rutinarias con calce = cualquier uploader. Definir o cambiar el molde es un acto gobernado.
-   - Cambiar la estructura del molde es **edición explícita de admin**, con aviso de impacto a las cargas existentes y futuras — un camino separado, no un efecto colateral de cargar un archivo. Al editar el molde, la vista 1:1 se re-sincroniza conservando las descripciones de negocio existentes.
+   - **Crear** plantilla + su vista 1:1 = admin **o** uploader de la torre (es parte del flujo de carga); nunca un consultante. Cargas rutinarias con calce = cualquier uploader.
+   - **Editar lo establecido = solo admin.** Cambiar la estructura del molde y editar la vista (su nombre de negocio y las descripciones de columna que el experto lee para decidir qué consultar) son igual de sensibles: ambos requieren rol admin de la torre. La edición del molde lleva aviso de impacto a las cargas existentes y futuras — un camino separado, no un efecto colateral de cargar un archivo. Al editar el molde, la vista 1:1 se re-sincroniza conservando las descripciones de negocio existentes.
 
 ## Consecuencias
 - (+) El negocio define sus reportes sin tocar código; la cadena hasta el experto queda cerrada de extremo a extremo.

@@ -132,14 +132,17 @@ def test_impacto_requiere_admin(client: Any) -> None:
 # --- Editar vista ---------------------------------------------------------------------
 
 
-def test_editar_vista_uploader_ok_consulta_403(client: Any) -> None:
+def test_editar_vista_solo_admin(client: Any) -> None:
+    # Editar la vista (nombre/descripciones que lee el experto) es SOLO admin,
+    # igual que el molde. Ni consulta ni uploader pueden.
     body = {
         "titulo": "Cartera abierta (renombrada)",
         "descripcion": "Saldos por cobrar abiertos.",
         "descripciones_columnas": {"monto": "Saldo pendiente de cobro por factura."},
     }
     assert client.put("/vistas/ar_abiertas", json=body, headers=CONSULTA).status_code == 403
-    resp = client.put("/vistas/ar_abiertas", json=body, headers=UPLOADER)
+    assert client.put("/vistas/ar_abiertas", json=body, headers=UPLOADER).status_code == 403
+    resp = client.put("/vistas/ar_abiertas", json=body, headers=ADMIN)
     assert resp.status_code == 200
     assert resp.json()["titulo"] == "Cartera abierta (renombrada)"
 
