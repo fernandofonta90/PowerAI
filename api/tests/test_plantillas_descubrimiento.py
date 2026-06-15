@@ -63,6 +63,59 @@ def test_emparejar_calce_y_no_calce(seed_vistas: Any) -> None:
     assert "monto" in ar.faltantes
 
 
+# --- M14: encabezados reales (mayúsculas/acentos/espacios) → slug, sin 400 -------------
+
+
+def test_crear_plantilla_con_encabezados_reales_slugifica_y_consulta(
+    seed_usuarios: Any, almacen_memoria: Any, reader_local: Any
+) -> None:
+    db = seed_usuarios
+    # Encabezados crudos de un reporte real (lo que antes daba HTTP 400).
+    columnas = [
+        ColumnaSpec(nombre="País", tipo=TipoColumna.TEXTO),
+        ColumnaSpec(nombre="Número Documento", tipo=TipoColumna.TEXTO),
+        ColumnaSpec(nombre="Importe S/", tipo=TipoColumna.DECIMAL),
+    ]
+    res = crear_plantilla_con_vista(
+        db,
+        Torre.OTC,
+        nombre_plantilla="Cartera Perú",
+        frecuencia=Frecuencia.MENSUAL,
+        columnas=columnas,
+        columna_pais="País",  # el usuario elige el encabezado real
+        columna_periodo=None,
+        vista_nombre_negocio="Cartera Perú",
+        descripciones_columnas={"Importe S/": "Importe pendiente en soles."},
+    )
+    # Nombres técnicos SQL-seguros; encabezados conservados como etiqueta.
+    nombres = {c.nombre for c in res.plantilla.columnas}
+    assert nombres == {"pais", "numero_documento", "importe_s"}
+    etiquetas = {c.etiqueta for c in res.plantilla.columnas}
+    assert etiquetas == {"País", "Número Documento", "Importe S/"}
+    # La descripción dada por encabezado quedó en la columna slug correcta.
+    cols_vista = {c.nombre: c.descripcion for c in res.vista.columnas}
+    assert cols_vista["importe_s"] == "Importe pendiente en soles."
+
+    # Una carga con los ENCABEZADOS REALES queda consultable por el slug.
+    datos = "País,Número Documento,Importe S/\nMX,F-1,100.00\nMX,F-2,50.00\n".encode()
+    carga = registrar_carga(
+        db,
+        almacen_memoria,
+        plantilla=res.plantilla,
+        responsable_email="uploader.mx@powerai.dev",
+        pais="MX",
+        periodo="2026-05",
+        nombre_archivo="cartera.csv",
+        datos=datos,
+    )
+    db.refresh(carga)
+    assert carga.estado is EstadoCarga.DISPONIBLE
+    resultado = ejecutar_consulta(
+        db, _mx(db), f"SELECT sum(importe_s) AS t FROM {res.vista.nombre}"
+    )
+    assert resultado.filas == [["150.00"]]
+
+
 # --- M12: plantilla sin columna de periodo (periodo declarado al cargar) ---------------
 
 

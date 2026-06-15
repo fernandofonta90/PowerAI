@@ -1,9 +1,42 @@
 """Tests unitarios de plantillas por descubrimiento (sin BD)."""
 
 from app.auth.schemas import Grant, UsuarioAutenticado
-from app.domain.enums import Rol, Torre
+from app.domain.columnas import ColumnaSpec
+from app.domain.enums import Rol, TipoColumna, Torre
 from app.ingesta.lector import Tabla
-from app.services.plantillas import aplicar_mapeo, es_admin_torre, puede_definir
+from app.services.plantillas import (
+    _slug,
+    aplicar_mapeo,
+    es_admin_torre,
+    puede_definir,
+    slugificar_columnas,
+)
+
+
+def test_slug_pliega_acentos_espacios_y_simbolos() -> None:
+    # Casos del reporte real (Manpower Perú).
+    assert _slug("Número Documento") == "numero_documento"
+    assert _slug("Importe S/") == "importe_s"
+    assert _slug("RUC") == "ruc"
+    assert _slug("País") == "pais"
+    # Un encabezado que empieza por número recibe prefijo (debe empezar por letra).
+    assert _slug("2026 Total")[0].isalpha()
+
+
+def test_slugificar_columnas_conserva_etiqueta_y_desambigua_colisiones() -> None:
+    cols = [
+        ColumnaSpec(nombre="Monto USD", tipo=TipoColumna.DECIMAL),
+        ColumnaSpec(nombre="Monto (USD)", tipo=TipoColumna.DECIMAL),
+        ColumnaSpec(nombre="Número Documento", tipo=TipoColumna.TEXTO),
+    ]
+    salida, avisos = slugificar_columnas(cols)
+    nombres = [c.nombre for c in salida]
+    # Colisión desambiguada con sufijo numérico (ambos slugifican a 'monto_usd').
+    assert nombres == ["monto_usd", "monto_usd_2", "numero_documento"]
+    # La etiqueta de negocio (encabezado original) se conserva.
+    assert [c.etiqueta for c in salida] == ["Monto USD", "Monto (USD)", "Número Documento"]
+    # Y se avisa de la desambiguación.
+    assert any("monto_usd_2" in a for a in avisos)
 
 
 def _usuario(rol: Rol, torre: Torre = Torre.OTC) -> UsuarioAutenticado:
