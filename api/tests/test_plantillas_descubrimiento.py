@@ -15,7 +15,7 @@ from app.domain.enums import EstadoCarga, Frecuencia, TipoColumna, Torre
 from app.models.plantilla import PlantillaReporte
 from app.motor.motor import ejecutar_consulta
 from app.scripts.muestras import generar_csv
-from app.services.cargas import registrar_carga
+from app.services.cargas import CargaRechazada, registrar_carga
 from app.services.plantillas import (
     crear_plantilla_con_vista,
     editar_plantilla,
@@ -66,6 +66,183 @@ def test_emparejar_calce_y_no_calce(seed_vistas: Any) -> None:
     ar = next(c for c in cands2 if c.plantilla.codigo == "otc_ar_abiertas")
     assert not ar.calza
     assert "monto" in ar.faltantes
+
+
+# --- M16: columnas opcionales + fechas que degradan a texto ----------------------------
+
+
+def test_columnas_opcionales_aceptan_celdas_vacias(
+    seed_usuarios: Any, almacen_memoria: Any, reader_local: Any
+) -> None:
+    db = seed_usuarios
+    columnas = [
+        ColumnaSpec(nombre="Proveedor", tipo=TipoColumna.TEXTO, requerida=False),
+        ColumnaSpec(nombre="Monto", tipo=TipoColumna.DECIMAL, requerida=False),
+        ColumnaSpec(nombre="Nota", tipo=TipoColumna.TEXTO, requerida=False),  # 100% vacía
+    ]
+    res = crear_plantilla_con_vista(
+        db,
+        Torre.OTC,
+        nombre_plantilla="Opcionales",
+        frecuencia=Frecuencia.MENSUAL,
+        columnas=columnas,
+        columna_pais=None,
+        columna_periodo=None,
+        vista_nombre_negocio="Opcionales",
+    )
+    # Monto y Nota vacíos en algunas filas; toda la columna Nota vacía.
+    datos = b"Proveedor,Monto,Nota\nACME,100.00,\nGLOBEX,,\n"
+    carga = registrar_carga(
+        db,
+        almacen_memoria,
+        plantilla=res.plantilla,
+        responsable_email="uploader.mx@powerai.dev",
+        pais="MX",
+        periodo="2026-05",
+        nombre_archivo="x.csv",
+        datos=datos,
+    )
+    db.refresh(carga)
+    assert carga.estado is EstadoCarga.DISPONIBLE  # vacíos NO rechazan
+    r = ejecutar_consulta(
+        db, _mx(db), f"SELECT count(*) AS n, count(monto) AS con_monto FROM {res.vista.nombre}"
+    )
+    assert r.filas == [[2, 1]]  # 2 filas; las celdas vacías entraron como NULL
+
+
+def test_llave_pais_como_columna_sigue_requerida(
+    seed_usuarios: Any, almacen_memoria: Any, reader_local: Any
+) -> None:
+    db = seed_usuarios
+    columnas = [
+        ColumnaSpec(nombre="Pais", tipo=TipoColumna.TEXTO, requerida=False),
+        ColumnaSpec(nombre="Monto", tipo=TipoColumna.DECIMAL, requerida=False),
+    ]
+    res = crear_plantilla_con_vista(
+        db,
+        Torre.OTC,
+        nombre_plantilla="Con llave",
+        frecuencia=Frecuencia.MENSUAL,
+        columnas=columnas,
+        columna_pais="Pais",  # elegida como columna → debe quedar requerida
+        columna_periodo=None,
+        vista_nombre_negocio="Con llave",
+    )
+    pais_col = next(c for c in res.plantilla.columnas if c.etiqueta == "Pais")
+    assert pais_col.requerida is True  # la llave no puede faltar
+    # Una fila con país vacío → rechazo (la llave que particiona no puede estar vacía).
+    datos = b"Pais,Monto\nMX,100.00\n,50.00\n"
+    with pytest.raises(CargaRechazada):
+        registrar_carga(
+            db,
+            almacen_memoria,
+            plantilla=res.plantilla,
+            responsable_email="uploader.mx@powerai.dev",
+            pais="MX",
+            periodo="2026-05",
+            nombre_archivo="x.csv",
+            datos=datos,
+        )
+
+
+def test_fecha_ambigua_degrada_a_texto_con_aviso(
+    seed_usuarios: Any, almacen_memoria: Any, reader_local: Any
+) -> None:
+    db = seed_usuarios
+    columnas = [
+        ColumnaSpec(nombre="Fecha Pago", tipo=TipoColumna.FECHA, requerida=False),
+        ColumnaSpec(nombre="Monto", tipo=TipoColumna.DECIMAL, requerida=False),
+    ]
+    res = crear_plantilla_con_vista(
+        db,
+        Torre.OTC,
+        nombre_plantilla="Con fecha rara",
+        frecuencia=Frecuencia.MENSUAL,
+        columnas=columnas,
+        columna_pais=None,
+        columna_periodo=None,
+        vista_nombre_negocio="Con fecha rara",
+    )
+    # Fechas genuinamente ambiguas (todos los campos ≤ 12): no rechaza, degrada.
+    datos = b"Fecha Pago,Monto\n10/06/2025,100.00\n07/08/2025,50.00\n"
+    carga = registrar_carga(
+        db,
+        almacen_memoria,
+        plantilla=res.plantilla,
+        responsable_email="uploader.mx@powerai.dev",
+        pais="MX",
+        periodo="2026-05",
+        nombre_archivo="x.csv",
+        datos=datos,
+    )
+    db.refresh(carga)
+    assert carga.estado is EstadoCarga.DISPONIBLE  # no rechaza
+    assert any("no se pudo interpretar como fecha" in a for a in carga.avisos)
+    # La columna quedó como TEXTO en la plantilla (el usuario puede editarla luego).
+    fp = next(c for c in res.plantilla.columnas if c.etiqueta == "Fecha Pago")
+    assert fp.tipo is TipoColumna.TEXTO
+    # Y el dato se cargó tal cual (texto), sin corromperse.
+    r = ejecutar_consulta(db, _mx(db), f"SELECT count(*) AS n FROM {res.vista.nombre}")
+    assert r.filas == [[2]]
+
+
+def test_archivo_ptp_completo_sin_rechazo(
+    seed_usuarios: Any, almacen_memoria: Any, reader_local: Any
+) -> None:
+    """Reproduce la estructura del reporte PTP real: columnas opcionales (3 vacías),
+    fechas mixtas (una DD/MM nítida, una ambigua que degrada), país declarado PE sin
+    columna y periodo 2025-11. La carga completa entra sin rechazo."""
+    db = seed_usuarios
+    columnas = [
+        ColumnaSpec(nombre="Supplier Name", tipo=TipoColumna.TEXTO, requerida=False),
+        ColumnaSpec(nombre="Invoice Amount", tipo=TipoColumna.DECIMAL, requerida=False),
+        ColumnaSpec(nombre="Invoice Date", tipo=TipoColumna.FECHA, requerida=False),
+        ColumnaSpec(nombre="Payment Approval Date 1", tipo=TipoColumna.FECHA, requerida=False),
+        ColumnaSpec(nombre="Payment Number", tipo=TipoColumna.TEXTO, requerida=False),  # vacía
+        ColumnaSpec(nombre="Payment Approver 2", tipo=TipoColumna.TEXTO, requerida=False),  # vacía
+        ColumnaSpec(
+            nombre="Payment Approval Date 2", tipo=TipoColumna.FECHA, requerida=False
+        ),  # vacía
+    ]
+    res = crear_plantilla_con_vista(
+        db,
+        Torre.OTC,
+        nombre_plantilla="Pagos PTP",
+        frecuencia=Frecuencia.MENSUAL,
+        columnas=columnas,
+        columna_pais=None,  # país declarado, sin columna
+        columna_periodo=None,
+        vista_nombre_negocio="Pagos PTP",
+    )
+    # Invoice Date DD/MM nítida (31 desambigua); Payment Approval Date 1 ambigua (degrada);
+    # Payment Number / Approver 2 / Approval Date 2 vacías al 100%.
+    datos = (
+        b"Supplier Name,Invoice Amount,Invoice Date,Payment Approval Date 1,"
+        b"Payment Number,Payment Approver 2,Payment Approval Date 2\n"
+        b"ACME,100.00,31/12/2025,10/06/2025,,,\n"
+        b"GLOBEX,,15/11/2025,07/08/2025,,,\n"
+    )
+    carga = registrar_carga(
+        db,
+        almacen_memoria,
+        plantilla=res.plantilla,
+        responsable_email="uploader.mx@powerai.dev",
+        pais="PE",
+        periodo="2025-11",
+        nombre_archivo="ptp.csv",
+        datos=datos,
+    )
+    db.refresh(carga)
+    assert carga.estado is EstadoCarga.DISPONIBLE  # carga COMPLETA, sin rechazo
+    assert carga.pais == "PE" and carga.periodo == "2025-11"
+    assert carga.filas == 2
+    # La fecha ambigua (Payment Approval Date 1) degradó con aviso; Invoice Date no.
+    assert any("Payment Approval Date 1" in a for a in carga.avisos)
+    # Invoice Date sí se parseó como fecha (DD/MM).
+    r = ejecutar_consulta(
+        db, _admin(db), f"SELECT invoice_date FROM {res.vista.nombre} ORDER BY invoice_date"
+    )
+    assert r.filas == [["2025-11-15"], ["2025-12-31"]]
 
 
 # --- M15: archivo PTP real (país declarado sin columna + fechas mixtas) ----------------
