@@ -42,7 +42,7 @@ class PlantillaResponse(BaseModel):
     descripcion: str
     frecuencia: Frecuencia
     columna_pais: str
-    columna_periodo: str
+    columna_periodo: str | None
     columnas: list[ColumnaSpec]
 
     @classmethod
@@ -83,7 +83,7 @@ class CrearPlantillaIn(BaseModel):
     frecuencia: Frecuencia
     columnas: list[ColumnaSpec] = Field(min_length=1)
     columna_pais: str
-    columna_periodo: str
+    columna_periodo: str | None = None
     vista_nombre_negocio: str = Field(min_length=1, max_length=200)
     vista_descripcion: str = ""
     descripciones_columnas: dict[str, str] = {}
@@ -94,7 +94,7 @@ class EditarPlantillaIn(BaseModel):
     frecuencia: Frecuencia
     columnas: list[ColumnaSpec] = Field(min_length=1)
     columna_pais: str
-    columna_periodo: str
+    columna_periodo: str | None = None
 
 
 class EditarVistaIn(BaseModel):
