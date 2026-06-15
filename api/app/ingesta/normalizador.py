@@ -12,7 +12,8 @@ import pyarrow.parquet as pq
 
 from app.domain.columnas import ColumnaSpec
 from app.domain.enums import TipoColumna
-from app.ingesta.coercion import coercer
+from app.ingesta.coercion import ValorInvalido, coercer
+from app.ingesta.fechas import detectar_formato_fecha, parsear_fecha
 from app.ingesta.lector import Tabla
 
 # Montos: punto fijo DECIMAL(18,2). NUNCA float64: los montos financieros se
@@ -29,9 +30,13 @@ _PA_TIPOS = {
 }
 
 
-def _valor_pa(valor: str, tipo: TipoColumna) -> object:
+def _valor_pa(valor: str, tipo: TipoColumna, formato_fecha: str | None) -> object:
     if valor == "":
         return None
+    if tipo is TipoColumna.FECHA:
+        if formato_fecha is None:
+            raise ValorInvalido(f"'{valor}': formato de fecha de la columna no reconocible")
+        return parsear_fecha(valor, formato_fecha)
     coercido = coercer(valor, tipo)
     if isinstance(coercido, Decimal):
         # Cuantiza al centavo (half-up) para encajar en DECIMAL(18,2) exacto.
@@ -46,11 +51,12 @@ def a_parquet(tabla: Tabla, columnas: list[ColumnaSpec]) -> bytes:
 
     # Se lee del archivo por el encabezado original (etiqueta) y se escribe bajo el
     # nombre técnico (slug), que es el que usan el Parquet, las vistas y DuckDB.
+    # Para fechas, el formato se detecta por columna (DD/MM, MM/DD, ISO).
     datos_por_columna: dict[str, list[object]] = {}
     for col in columnas:
-        datos_por_columna[col.nombre] = [
-            _valor_pa(fila.get(col.etiqueta, ""), col.tipo) for fila in tabla.filas
-        ]
+        crudos = [fila.get(col.etiqueta, "") for fila in tabla.filas]
+        formato = detectar_formato_fecha(crudos) if col.tipo is TipoColumna.FECHA else None
+        datos_por_columna[col.nombre] = [_valor_pa(v, col.tipo, formato) for v in crudos]
 
     tabla_pa = pa.table(datos_por_columna, schema=esquema)
     buffer = io.BytesIO()
