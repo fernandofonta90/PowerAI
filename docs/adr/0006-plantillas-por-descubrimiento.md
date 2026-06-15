@@ -21,4 +21,7 @@ La estructura se descubre desde la primera carga y se gobierna:
 - (+) Los barandales preservan la calidad: la entrada sigue validada, el molde no cambia por accidente, y el catálogo sigue gobernado.
 - (+) Convive con lo sembrado: las plantillas/vistas OTC iniciales siguen funcionando y los evals OTC se mantienen ≥95%.
 - (−) El mapeo se persiste por carga: si el molde cambia luego, las cargas viejas conservan su mapeo histórico (correcto para inmutabilidad, pero hay que tenerlo presente al auditar).
-- (−) Inferencia de tipos no automática: el usuario confirma el tipo de cada columna (decisión deliberada — más seguro que adivinar y normalizar mal montos o fechas).
+
+## Adenda (M12)
+- **Inferencia de tipos:** al inspeccionar se analiza una muestra y se **sugiere** el tipo de cada columna (fecha/decimal/entero/texto; los identificadores numéricos van a texto). Sigue siendo el humano quien confirma: la inferencia pre-selecciona, no impone.
+- **Periodo opcional:** muchos reportes no traen columna de periodo. `columna_periodo` pasa a opcional; si no hay columna, el periodo se declara al cargar y aplica a todo el archivo, manteniendo el versionado (una carga = un periodo). El país no cambia: sigue como hasta ahora (no se generaliza la partición; p. ej. PTP no segmenta por país).
