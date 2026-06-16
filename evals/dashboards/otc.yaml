@@ -10,25 +10,25 @@
   peticion: "Arma un tablero con el total de la cartera abierta"
   respondible: true
   tipos_esperados: ["kpi"]
-  valores_esperados: ["5550.00"]
+  valores_esperados: ["99091.50"]
 
 - id: dash-saldo-por-cliente
   peticion: "Quiero un tablero del saldo de cartera por cliente"
   respondible: true
   tipos_esperados: []
-  valores_esperados: ["3500.00", "1750.00"]
+  valores_esperados: ["20000.00", "15000.00"]
 
 - id: dash-aging
   peticion: "Dame un tablero del aging de la cartera por tramos de mora"
   respondible: true
   tipos_esperados: []
-  valores_esperados: ["3000.00"]
+  valores_esperados: ["37330.25"]
 
 - id: dash-pagos-unapplied
   peticion: "Un tablero de los pagos no aplicados"
   respondible: true
   tipos_esperados: []
-  valores_esperados: ["1000.00"]
+  valores_esperados: ["7550.50"]
 
 - id: dash-no-margen
   peticion: "Un tablero de rentabilidad y margen por cliente"
